@@ -6,12 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Models\MataPelajaran;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class MataPelajaranController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $mataPelajaran = MataPelajaran::orderBy('nama')->paginate(20);
+        $query = MataPelajaran::query();
+
+        if ($request->filled('search')) {
+            $query->where(
+                fn($q) =>
+                $q->where('nama', 'like', "%{$request->search}%")
+                    ->orWhere('kode', 'like', "%{$request->search}%")
+            );
+        }
+
+        $mataPelajaran = $query->orderBy('nama')->paginate(20)->withQueryString();
         return view('mata-pelajaran.index', compact('mataPelajaran'));
     }
 
@@ -23,13 +34,18 @@ class MataPelajaranController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'kode'   => ['required', 'string', 'max:20', 'unique:mata_pelajaran,kode'],
-            'nama'   => ['required', 'string', 'max:100'],
-            'tingkat'=> ['required', 'string', 'max:20'],
-            'kkm'    => ['nullable', 'integer', 'min:0', 'max:100'],
+            'kode'      => ['required', 'string', 'max:20', 'unique:mata_pelajaran,kode'],
+            'nama'      => ['required', 'string', 'max:100'],
+            'tingkat'   => ['required', 'string', 'max:20'],
+            'kkm'       => ['nullable', 'integer', 'min:0', 'max:100'],
+            'deskripsi' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $mapel = MataPelajaran::create($validated);
+        $mapel = MataPelajaran::create(array_merge($validated, [
+            'kode'      => strtoupper($validated['kode']),
+            'is_active' => true,
+        ]));
+
         ActivityLogService::logCreate($mapel);
 
         return redirect()->route('admin.mata-pelajaran.index')
@@ -49,14 +65,24 @@ class MataPelajaranController extends Controller
     public function update(Request $request, MataPelajaran $mataPelajaran)
     {
         $validated = $request->validate([
-            'kode'   => ['required', 'string', 'max:20', 'unique:mata_pelajaran,kode,' . $mataPelajaran->id],
-            'nama'   => ['required', 'string', 'max:100'],
-            'tingkat'=> ['required', 'string', 'max:20'],
-            'kkm'    => ['nullable', 'integer', 'min:0', 'max:100'],
+            'kode'      => [
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('mata_pelajaran', 'kode')->ignore($mataPelajaran->id)
+            ],
+            'nama'      => ['required', 'string', 'max:100'],
+            'tingkat'   => ['required', 'string', 'max:20'],
+            'kkm'       => ['nullable', 'integer', 'min:0', 'max:100'],
+            'deskripsi' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $mataPelajaran->update($validated);
-        ActivityLogService::logUpdate($mataPelajaran);
+        $old = $mataPelajaran->toArray();
+        $mataPelajaran->update(array_merge($validated, [
+            'kode' => strtoupper($validated['kode']),
+        ]));
+
+        ActivityLogService::logUpdate($mataPelajaran, $old);
 
         return redirect()->route('admin.mata-pelajaran.index')
             ->with('success', 'Mata pelajaran berhasil diperbarui.');
@@ -64,10 +90,9 @@ class MataPelajaranController extends Controller
 
     public function destroy(MataPelajaran $mataPelajaran)
     {
+        $mataPelajaran->update(['is_active' => false]);
         ActivityLogService::logDelete($mataPelajaran);
-        $mataPelajaran->delete();
 
-        return redirect()->route('admin.mata-pelajaran.index')
-            ->with('success', 'Mata pelajaran berhasil dihapus.');
+        return back()->with('success', 'Mata pelajaran dinonaktifkan.');
     }
 }
