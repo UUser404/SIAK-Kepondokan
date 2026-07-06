@@ -4,17 +4,24 @@
 // ============================================================
 namespace App\Http\Controllers\Kurikulum;
 
+use App\Exports\NilaiExport;
+use App\Exports\PresensiExport;
 use App\Http\Controllers\Controller;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\NilaiAkhir;
 use App\Models\TahunAjaran;
 use App\Services\PenilaianService;
+use App\Services\PresensiKbmService;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class NilaiController extends Controller
 {
-    public function __construct(private PenilaianService $penilaianService) {}
+    public function __construct(
+        private PenilaianService $penilaianService,
+        private PresensiKbmService $presensiKbmService
+    ) {}
 
     /**
      * Overview semua kelas & status nilai
@@ -104,6 +111,50 @@ class NilaiController extends Controller
         return back()->with(
             'success',
             "Nilai akhir {$kelas->nama} — {$mataPelajaran->nama} berhasil dikalkulasi ({$results} santri)."
+        );
+    }
+
+    /**
+     * FR-14: Export rekap nilai satu kelas & mapel ke Excel
+     */
+    public function exportNilai(Request $request)
+    {
+        $request->validate([
+            'kelas_id' => ['required', 'exists:kelas,id'],
+            'mapel_id' => ['required', 'exists:mata_pelajaran,id'],
+        ]);
+
+        $ta            = TahunAjaran::aktif();
+        $kelas         = Kelas::findOrFail($request->kelas_id);
+        $mataPelajaran = MataPelajaran::findOrFail($request->mapel_id);
+
+        abort_if(! $ta, 422, 'Tidak ada tahun ajaran aktif.');
+
+        return Excel::download(
+            new NilaiExport($kelas, $mataPelajaran, $ta, $this->penilaianService),
+            "nilai-{$kelas->nama}-{$mataPelajaran->nama}-" . now()->format('Y-m-d') . '.xlsx'
+        );
+    }
+
+    /**
+     * FR-14: Export rekap presensi KBM satu kelas & mapel ke Excel
+     */
+    public function exportPresensi(Request $request)
+    {
+        $request->validate([
+            'kelas_id' => ['required', 'exists:kelas,id'],
+            'mapel_id' => ['required', 'exists:mata_pelajaran,id'],
+        ]);
+
+        $ta            = TahunAjaran::aktif();
+        $kelas         = Kelas::findOrFail($request->kelas_id);
+        $mataPelajaran = MataPelajaran::findOrFail($request->mapel_id);
+
+        abort_if(! $ta, 422, 'Tidak ada tahun ajaran aktif.');
+
+        return Excel::download(
+            new PresensiExport($kelas, $mataPelajaran, $ta, $this->presensiKbmService),
+            "presensi-{$kelas->nama}-{$mataPelajaran->nama}-" . now()->format('Y-m-d') . '.xlsx'
         );
     }
 }

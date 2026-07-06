@@ -44,8 +44,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Penilaian
         Route::get('nilai', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'index'])->name('nilai.index');
-        Route::get('nilai/{kelas}/{mapel}', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'show'])->name('nilai.show');
+        // Catatan perbaikan: sebelumnya route ini "nilai/{kelas}/{mapel}" padahal controller & filter form
+        // membaca kelas_id/mapel_id sebagai query string (GET), bukan route segment -> selalu error
+        // "Missing required parameter [mapel]" saat diklik dari halaman index. Diperbaiki jadi path polos.
+        Route::get('nilai/detail', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'show'])->name('nilai.show');
         Route::post('nilai/finalize', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'finalize'])->name('nilai.finalize');
+        // FR-14: export nilai & presensi ke Excel (kelas_id & mapel_id dikirim sebagai query string)
+        Route::get('nilai/export', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'exportNilai'])->name('nilai.export');
+        Route::get('presensi/export', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'exportPresensi'])->name('presensi.export');
 
         // Rapor
         Route::get('rapor', [\App\Http\Controllers\Kurikulum\RaporController::class, 'index'])->name('rapor.index');
@@ -72,7 +78,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Nilai (hanya mapel sendiri)
         Route::get('nilai', [\App\Http\Controllers\Guru\NilaiController::class, 'index'])->name('nilai.index');
-        Route::get('nilai/{kelas}/{mapel}', [\App\Http\Controllers\Guru\NilaiController::class, 'show'])->name('nilai.show');
+        Route::get('nilai/{kelas}/{mataPelajaran}', [\App\Http\Controllers\Guru\NilaiController::class, 'show'])->name('nilai.show');
         Route::post('nilai', [\App\Http\Controllers\Guru\NilaiController::class, 'store'])->name('nilai.store');
         Route::put('nilai/{nilai}', [\App\Http\Controllers\Guru\NilaiController::class, 'update'])->name('nilai.update');
         Route::post('nilai/bulk', [\App\Http\Controllers\Guru\NilaiController::class, 'bulkStore'])->name('nilai.bulk');
@@ -109,8 +115,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('prestasi', \App\Http\Controllers\Kesantrian\PrestasiController::class);
 
         // Rekap
-        Route::get('rekap/pelanggaran', [\App\Http\Controllers\Kesantrian\RekapController::class, 'pelanggaran'])->name('rekap.pelanggaran');
-        Route::get('rekap/presensi', [\App\Http\Controllers\Kesantrian\RekapController::class, 'presensi'])->name('rekap.presensi');
+        // Catatan perbaikan: sebelumnya kedua route ini mengarah ke RekapController@pelanggaran
+        // dan RekapController@presensi, yang masing-masing me-return view('kesantrian.rekap.pelanggaran')
+        // dan view('kesantrian.rekap.presensi') — TAPI kedua file view tsb TIDAK PERNAH ADA di project ini,
+        // jadi keduanya pasti error "View not found" saat diakses. Diarahkan ke controller/view yang
+        // sudah benar-benar ada dan berfungsi.
+        Route::get('rekap/pelanggaran', [\App\Http\Controllers\Kesantrian\PelanggaranController::class, 'index'])->name('rekap.pelanggaran');
+        Route::get('rekap/presensi', [\App\Http\Controllers\Kesantrian\PresensiKegiatanController::class, 'rekap'])->name('rekap.presensi');
     });
 
     // ==========================================

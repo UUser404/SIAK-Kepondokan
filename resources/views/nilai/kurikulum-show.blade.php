@@ -108,6 +108,26 @@
                 Kalkulasi Nilai Akhir
             </button>
         </form>
+
+        {{-- FR-14: Export nilai & presensi ke Excel --}}
+        <a href="{{ route('kurikulum.nilai.export', ['kelas_id' => $kelas->id, 'mapel_id' => $mataPelajaran->id]) }}"
+            class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl
+                   border border-gray-200 text-siakad-dark hover:bg-gray-50 transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export Nilai
+        </a>
+        <a href="{{ route('kurikulum.presensi.export', ['kelas_id' => $kelas->id, 'mapel_id' => $mataPelajaran->id]) }}"
+            class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-xl
+                   border border-gray-200 text-siakad-dark hover:bg-gray-50 transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export Presensi
+        </a>
     </div>
 
     {{-- Tabel rekap --}}

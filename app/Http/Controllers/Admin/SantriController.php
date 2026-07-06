@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\SantriExport;
 use App\Http\Controllers\Controller;
 use App\Models\Santri;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class SantriController extends Controller
 {
@@ -16,7 +18,7 @@ class SantriController extends Controller
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('nama_lengkap', 'like', "%{$request->search}%")
-                  ->orWhere('nis', 'like', "%{$request->search}%");
+                    ->orWhere('nis', 'like', "%{$request->search}%");
             });
         }
 
@@ -110,9 +112,13 @@ class SantriController extends Controller
             ->with('success', 'Data santri berhasil dihapus.');
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        $santri = Santri::orderBy('nama_lengkap')->get();
-        return view('santri.export', compact('santri'));
+        $filters = $request->only(['status', 'kelas_id']);
+
+        return Excel::download(
+            new SantriExport($filters),
+            'data-santri-' . now()->format('Y-m-d_His') . '.xlsx'
+        );
     }
 }
