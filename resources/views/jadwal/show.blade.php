@@ -20,7 +20,7 @@
             @foreach([
             ['Kelas', $jadwal->kelas->nama],
             ['Mata Pelajaran', $jadwal->mataPelajaran->nama],
-            ['Guru', $jadwal->guru->nama], {{-- Diubah menjadi ->nama dari model TenagaPendidik --}}
+            ['Guru', $jadwal->guru->name], {{-- $jadwal->guru() -> belongsTo(User::class), field-nya 'name' --}}
             ['Hari', $jadwal->hari],
             ['Jam', \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i').' - '.\Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i')],
             ['Ruangan', $jadwal->ruangan ?? '—'],

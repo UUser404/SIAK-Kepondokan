@@ -69,7 +69,7 @@
                         <td class="px-5 py-3.5 text-siakad-dark dark:text-white">{{ $j->kelas->nama }}</td>
                         <td class="px-5 py-3.5 text-siakad-dark dark:text-white">{{ $j->mataPelajaran->nama }}</td>
                         {{-- Menampilkan nama dari model TenagaPendidik lamamu --}}
-                        <td class="px-5 py-3.5 text-siakad-secondary dark:text-gray-400 text-xs">{{ $j->guru->nama }}</td>
+                        <td class="px-5 py-3.5 text-siakad-secondary dark:text-gray-400 text-xs">{{ $j->guru->name }}</td>
                         <td class="px-5 py-3.5 text-siakad-secondary dark:text-gray-400">{{ $j->ruangan ?? '—' }}</td>
                         <td class="px-5 py-3.5">
                             <div class="flex items-center gap-1">
