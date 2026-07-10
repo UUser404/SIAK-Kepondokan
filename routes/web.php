@@ -106,6 +106,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('asrama', \App\Http\Controllers\Kesantrian\AsramaController::class);
         Route::resource('kamar', \App\Http\Controllers\Kesantrian\KamarController::class);
         Route::post('kamar/{kamar}/tempatkan', [\App\Http\Controllers\Kesantrian\KamarController::class, 'tempatkan'])->name('kamar.tempatkan');
+        // Perbaikan: route ini sebelumnya belum ada padahal KamarController::keluarkan() sudah ada
+        // dan sudah dipanggil dari resources/views/asrama/show.blade.php -> selalu error "Route not found".
+        Route::patch('kamar/{penempatan}/keluarkan', [\App\Http\Controllers\Kesantrian\KamarController::class, 'keluarkan'])->name('kamar.keluarkan');
 
         // Pelanggaran
         Route::resource('pelanggaran', \App\Http\Controllers\Kesantrian\PelanggaranController::class);
@@ -145,13 +148,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('komponen-nilai', \App\Http\Controllers\Admin\KomponenNilaiController::class);
 
         // PPDB
-        Route::resource('ppdb', \App\Http\Controllers\Admin\PpdbController::class);
+        // Perbaikan: sebelumnya "Route::resource('ppdb', PpdbController::class)" -- padahal controller
+        // TIDAK punya method create()/store()/show()/edit()/update()/destroy() standar (yang ada malah
+        // createPeriode()/storePeriode()/aktifkanPeriode()/showPendaftar()/showDetail()). View yang
+        // dipakai memanggil nama route 'admin.ppdb.create-periode', 'admin.ppdb.aktifkan',
+        // 'admin.ppdb.pendaftar', 'admin.ppdb.detail' yang sebelumnya sama sekali tidak terdaftar
+        // -> selalu "Route not found". Diganti route eksplisit yang cocok, sekaligus menghindari
+        // resource route "hantu" yang bisa 500 (BadMethodCallException) kalau tidak sengaja diakses.
+        Route::get('ppdb', [\App\Http\Controllers\Admin\PpdbController::class, 'index'])->name('ppdb.index');
+        Route::get('ppdb/create-periode', [\App\Http\Controllers\Admin\PpdbController::class, 'createPeriode'])->name('ppdb.create-periode');
+        Route::post('ppdb/periode', [\App\Http\Controllers\Admin\PpdbController::class, 'storePeriode'])->name('ppdb.store-periode');
+        Route::post('ppdb/{periode}/aktifkan', [\App\Http\Controllers\Admin\PpdbController::class, 'aktifkanPeriode'])->name('ppdb.aktifkan');
+        Route::get('ppdb/pendaftar/{periode?}', [\App\Http\Controllers\Admin\PpdbController::class, 'showPendaftar'])->name('ppdb.pendaftar');
+        Route::get('ppdb/pendaftar/{pendaftar}/detail', [\App\Http\Controllers\Admin\PpdbController::class, 'showDetail'])->name('ppdb.detail');
         Route::post('ppdb/{pendaftar}/verifikasi', [\App\Http\Controllers\Admin\PpdbController::class, 'verifikasi'])->name('ppdb.verifikasi');
         Route::post('ppdb/{pendaftar}/terima', [\App\Http\Controllers\Admin\PpdbController::class, 'terima'])->name('ppdb.terima');
         Route::post('ppdb/{pendaftar}/tolak', [\App\Http\Controllers\Admin\PpdbController::class, 'tolak'])->name('ppdb.tolak');
         Route::post('ppdb/{pendaftar}/konversi', [\App\Http\Controllers\Admin\PpdbController::class, 'konversiKeSantri'])->name('ppdb.konversi');
 
         // Surat
+        // Perbaikan: route 'surat/template-konten' harus didaftarkan SEBELUM Route::resource('surat', ...),
+        // supaya tidak "ketutupan" oleh route resource show ('surat/{surat}') yang polanya sama-sama
+        // "surat/{sesuatu}" dan akan lebih dulu dicoba dicocokkan oleh Laravel.
+        Route::get('surat/template-konten', [\App\Http\Controllers\Admin\SuratController::class, 'getKontenTemplate'])->name('surat.template-konten');
         Route::resource('surat', \App\Http\Controllers\Admin\SuratController::class);
         Route::resource('template-surat', \App\Http\Controllers\Admin\TemplateSuratController::class);
         Route::get('surat/{surat}/cetak', [\App\Http\Controllers\Admin\SuratController::class, 'cetak'])->name('surat.cetak');
