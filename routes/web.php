@@ -104,7 +104,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Asrama & Kamar
         Route::resource('asrama', \App\Http\Controllers\Kesantrian\AsramaController::class);
-        Route::resource('kamar', \App\Http\Controllers\Kesantrian\KamarController::class);
+        // Perbaikan: KamarController hanya punya method index()/store()/update() -- TIDAK ADA
+        // create()/show()/edit()/destroy() standar. "Route::resource('kamar', ...)" sebelumnya
+        // tetap mendaftarkan route utuh untuk method yang tidak ada itu (bisa 500 kalau diakses,
+        // pola sama seperti bug ppdb yang sudah diperbaiki). Diganti eksplisit sesuai method nyata.
+        Route::get('kamar', [\App\Http\Controllers\Kesantrian\KamarController::class, 'index'])->name('kamar.index');
+        Route::post('kamar', [\App\Http\Controllers\Kesantrian\KamarController::class, 'store'])->name('kamar.store');
+        Route::put('kamar/{kamar}', [\App\Http\Controllers\Kesantrian\KamarController::class, 'update'])->name('kamar.update');
         Route::post('kamar/{kamar}/tempatkan', [\App\Http\Controllers\Kesantrian\KamarController::class, 'tempatkan'])->name('kamar.tempatkan');
         // Perbaikan: route ini sebelumnya belum ada padahal KamarController::keluarkan() sudah ada
         // dan sudah dipanggil dari resources/views/asrama/show.blade.php -> selalu error "Route not found".
