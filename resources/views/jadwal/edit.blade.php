@@ -15,6 +15,6 @@
 
     <form method="POST" action="{{ route('kurikulum.jadwal.update', $jadwal) }}" class="max-w-xl">
         @csrf @method('PUT')
-        @include('kurikulum.jadwal._form', ['submitLabel' => 'Perbarui'])
+        @include('jadwal._form', ['submitLabel' => 'Perbarui'])
     </form>
 </x-app-layout>

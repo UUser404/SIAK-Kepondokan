@@ -15,6 +15,6 @@
 
     <form method="POST" action="{{ route('kurikulum.jadwal.store') }}" class="max-w-xl">
         @csrf
-        @include('kurikulum.jadwal._form', ['jadwal' => null, 'submitLabel' => 'Simpan'])
+        @include('jadwal._form', ['jadwal' => null, 'submitLabel' => 'Simpan'])
     </form>
 </x-app-layout>
