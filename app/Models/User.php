@@ -45,6 +45,11 @@ class User extends Authenticatable
         return $this->hasOne(TenagaPendidik::class);
     }
 
+    public function penugasanMengajar()
+    {
+        return $this->hasMany(PenugasanMengajar::class, 'guru_id');
+    }
+
     public function santri()
     {
         return $this->hasOne(Santri::class);

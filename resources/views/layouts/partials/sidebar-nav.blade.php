@@ -58,10 +58,13 @@
            style="color: var(--text-secondary); opacity: 0.6;">Akademik</p>
     </div>
     @foreach([
-        ['route'=>'kurikulum.kelas.index',  'prefix'=>'kurikulum.kelas',  'label'=>'Kelas',      'icon'=>'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z'],
-        ['route'=>'kurikulum.jadwal.index', 'prefix'=>'kurikulum.jadwal', 'label'=>'Jadwal',     'icon'=>'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'],
-        ['route'=>'kurikulum.nilai.index',  'prefix'=>'kurikulum.nilai',  'label'=>'Penilaian',  'icon'=>'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'],
-        ['route'=>'kurikulum.rapor.index',  'prefix'=>'kurikulum.rapor',  'label'=>'Rapor',      'icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
+        ['route'=>'kurikulum.kelas.index',      'prefix'=>'kurikulum.kelas',      'label'=>'Kelas',              'icon'=>'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z'],
+        // Menu 'Jadwal' sengaja disembunyikan dulu (fitur jadwal hari/jam tidak dipakai untuk saat ini).
+        // Digantikan oleh menu 'Penugasan' di bawah, yang menentukan mapel & kelas yang diampu guru
+        // tanpa perlu jadwal hari/jam.
+        ['route'=>'kurikulum.penugasan.index',  'prefix'=>'kurikulum.penugasan',  'label'=>'Penugasan',          'icon'=>'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'],
+        ['route'=>'kurikulum.nilai.index',      'prefix'=>'kurikulum.nilai',      'label'=>'Penilaian',          'icon'=>'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'],
+        ['route'=>'kurikulum.rapor.index',      'prefix'=>'kurikulum.rapor',      'label'=>'Rapor',              'icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
     ] as $item)
     <a href="{{ route($item['route']) }}"
        class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active($item['prefix']) }}"

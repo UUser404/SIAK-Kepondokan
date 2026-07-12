@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
-use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\KomponenNilai;
 use App\Models\MataPelajaran;
 use App\Models\Nilai;
 use App\Models\NilaiAkhir;
+use App\Models\PenugasanMengajar;
 use App\Models\SantriKelas;
 use App\Models\TahunAjaran;
 use App\Services\ActivityLogService;
@@ -29,13 +29,10 @@ class NilaiController extends Controller
         $user = Auth::user();
         $ta   = TahunAjaran::aktif();
 
-        $jadwalList = JadwalPelajaran::where('guru_id', $user->id)
-            ->when($ta, fn($q) => $q->whereHas('kelas', fn($k) =>
-                $k->where('tahun_ajaran_id', $ta->id)
-            ))
+        $jadwalList = PenugasanMengajar::where('guru_id', $user->id)
+            ->when($ta, fn($q) => $q->where('tahun_ajaran_id', $ta->id))
             ->with(['mataPelajaran', 'kelas.tingkatan'])
-            ->get()
-            ->unique(fn($j) => $j->kelas_id . '_' . $j->mata_pelajaran_id);
+            ->get();
 
         // Cek progress input nilai per kelas-mapel
         $jadwalList = $jadwalList->map(function ($jadwal) use ($ta) {
@@ -69,8 +66,8 @@ class NilaiController extends Controller
         $user = Auth::user();
         $ta   = TahunAjaran::aktif();
 
-        // Pastikan guru ini mengajar kelas-mapel ini
-        $jadwal = JadwalPelajaran::where('guru_id', $user->id)
+        // Pastikan guru ini mengajar kelas-mapel ini (berdasarkan Penugasan Mengajar dari Kurikulum)
+        $penugasan = PenugasanMengajar::where('guru_id', $user->id)
             ->where('kelas_id', $kelas->id)
             ->where('mata_pelajaran_id', $mataPelajaran->id)
             ->firstOrFail();
@@ -153,8 +150,8 @@ class NilaiController extends Controller
             'nilai.*.*'         => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
-        // Pastikan guru mengajar kelas-mapel ini
-        $jadwal = JadwalPelajaran::where('guru_id', Auth::id())
+        // Pastikan guru mengajar kelas-mapel ini (berdasarkan Penugasan Mengajar dari Kurikulum)
+        $penugasan = PenugasanMengajar::where('guru_id', Auth::id())
             ->where('kelas_id', $request->kelas_id)
             ->where('mata_pelajaran_id', $request->mata_pelajaran_id)
             ->firstOrFail();

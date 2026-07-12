@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
-use App\Models\JadwalPelajaran;
+use App\Models\PenugasanMengajar;
 use App\Models\Pertemuan;
 use App\Models\PresensiKbm;
 use App\Models\SantriKelas;
@@ -16,45 +16,27 @@ use Illuminate\Support\Facades\DB;
 class PresensiController extends Controller
 {
     /**
-     * Daftar jadwal guru — ringkasan sudah/belum presensi per hari
+     * Daftar kelas & mapel yang diampu guru ini (dari Penugasan Mengajar Kurikulum)
+     * + riwayat pertemuan yang sudah diinput.
      */
-    public function index(Request $request)
+    public function index()
     {
-        $user  = Auth::user();
-        $ta    = TahunAjaran::aktif();
-        $minggu = $request->get('minggu', now()->startOfWeek()->format('Y-m-d'));
-        $mulai  = \Carbon\Carbon::parse($minggu)->startOfWeek();
-        $selesai = $mulai->copy()->endOfWeek();
+        $user = Auth::user();
+        $ta   = TahunAjaran::aktif();
 
-        // Jadwal milik guru ini di TA aktif
-        $jadwalList = JadwalPelajaran::where('guru_id', $user->id)
-            ->when($ta, fn($q) => $q->whereHas('kelas', fn($k) =>
-                $k->where('tahun_ajaran_id', $ta->id)
-            ))
+        // Kelas & mapel yang ditugaskan Kurikulum ke guru ini
+        $penugasanList = PenugasanMengajar::where('guru_id', $user->id)
+            ->when($ta, fn($q) => $q->where('tahun_ajaran_id', $ta->id))
             ->with(['mataPelajaran', 'kelas.tingkatan'])
-            ->orderBy('hari')
-            ->orderBy('jam_mulai')
             ->get();
 
-        // Pertemuan yang sudah dibuat minggu ini
-        $pertemuanMingguIni = Pertemuan::where('guru_id', $user->id)
-            ->whereBetween('tanggal', [$mulai, $selesai])
-            ->get()
-            ->keyBy(fn($p) => $p->jadwal_pelajaran_id . '_' . $p->tanggal->format('Y-m-d'));
-
-        // Hitung tanggal untuk setiap jadwal di minggu ini
-        $hariMap = ['senin'=>1,'selasa'=>2,'rabu'=>3,'kamis'=>4,'jumat'=>5,'sabtu'=>6];
-        $jadwalMingguIni = $jadwalList->map(function ($jadwal) use ($mulai, $pertemuanMingguIni, $hariMap) {
-            $offset  = ($hariMap[$jadwal->hari] ?? 1) - 1;
-            $tanggal = $mulai->copy()->addDays($offset);
-            $key     = $jadwal->id . '_' . $tanggal->format('Y-m-d');
-
-            return [
-                'jadwal'         => $jadwal,
-                'tanggal'        => $tanggal,
-                'sudah_presensi' => isset($pertemuanMingguIni[$key]),
-                'pertemuan'      => $pertemuanMingguIni[$key] ?? null,
-            ];
+        // Tandai kapan terakhir kali masing-masing kelas-mapel diinput presensinya
+        $penugasanList->each(function ($penugasan) use ($user) {
+            $penugasan->pertemuan_terakhir = Pertemuan::where('guru_id', $user->id)
+                ->where('kelas_id', $penugasan->kelas_id)
+                ->where('mata_pelajaran_id', $penugasan->mata_pelajaran_id)
+                ->orderByDesc('tanggal')
+                ->first();
         });
 
         // Riwayat pertemuan (10 terakhir)
@@ -64,45 +46,36 @@ class PresensiController extends Controller
             ->limit(10)
             ->get();
 
-        return view('presensi-kbm.index', compact(
-            'jadwalMingguIni', 'riwayat', 'minggu', 'mulai', 'selesai'
-        ));
+        return view('presensi-kbm.index', compact('penugasanList', 'riwayat'));
     }
 
     /**
-     * Form input presensi untuk satu jadwal
+     * Form input presensi untuk satu penugasan (kelas + mapel).
+     * Tanggal diisi manual oleh guru (tidak boleh lebih dari hari ini).
      */
-    public function create(JadwalPelajaran $jadwal)
+    public function create(PenugasanMengajar $penugasan)
     {
-        // Pastikan jadwal ini milik guru yang login
-        abort_if($jadwal->guru_id !== Auth::id(), 403);
+        abort_if($penugasan->guru_id !== Auth::id(), 403);
 
         $ta = TahunAjaran::aktif();
 
         // Daftar santri di kelas ini
-        $santriList = SantriKelas::where('kelas_id', $jadwal->kelas_id)
+        $santriList = SantriKelas::where('kelas_id', $penugasan->kelas_id)
             ->where('status', 'aktif')
             ->when($ta, fn($q) => $q->where('tahun_ajaran_id', $ta->id))
             ->with('santri')
             ->get()
             ->sortBy('santri.nama_lengkap');
 
-        // Hitung pertemuan ke-n
-        $pertemuanKe = Pertemuan::where('jadwal_pelajaran_id', $jadwal->id)->count() + 1;
+        // Hitung pertemuan ke-n untuk kombinasi guru+kelas+mapel ini
+        $pertemuanKe = Pertemuan::where('guru_id', $penugasan->guru_id)
+            ->where('kelas_id', $penugasan->kelas_id)
+            ->where('mata_pelajaran_id', $penugasan->mata_pelajaran_id)
+            ->count() + 1;
 
-        // Cek sudah ada pertemuan hari ini?
-        $sudahAda = Pertemuan::where('jadwal_pelajaran_id', $jadwal->id)
-            ->whereDate('tanggal', today())
-            ->first();
+        $penugasan->load(['mataPelajaran', 'kelas']);
 
-        if ($sudahAda) {
-            return redirect()->route('guru.presensi.show', $sudahAda)
-                ->with('error', 'Presensi untuk jadwal ini hari ini sudah diinput.');
-        }
-
-        $jadwal->load(['mataPelajaran', 'kelas']);
-
-        return view('presensi-kbm.create', compact('jadwal', 'santriList', 'pertemuanKe'));
+        return view('presensi-kbm.create', compact('penugasan', 'santriList', 'pertemuanKe'));
     }
 
     /**
@@ -111,39 +84,44 @@ class PresensiController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'jadwal_pelajaran_id' => ['required', 'exists:jadwal_pelajaran,id'],
-            'tanggal'             => ['required', 'date', 'before_or_equal:today'],
-            'jam_mulai'           => ['required', 'date_format:H:i'],
-            'jam_selesai'         => ['required', 'date_format:H:i', 'after:jam_mulai'],
-            'topik'               => ['nullable', 'string', 'max:200'],
-            'materi'              => ['nullable', 'string', 'max:1000'],
-            'catatan_guru'        => ['nullable', 'string', 'max:500'],
-            'presensi'            => ['required', 'array', 'min:1'],
-            'presensi.*.santri_id'=> ['required', 'exists:santri,id'],
-            'presensi.*.status'   => ['required', 'in:hadir,sakit,izin,alpa'],
-            'presensi.*.keterangan'=> ['nullable', 'string', 'max:200'],
+            'penugasan_id'          => ['required', 'exists:penugasan_mengajar,id'],
+            'tanggal'               => ['required', 'date', 'before_or_equal:today'],
+            'jam_mulai'             => ['required', 'date_format:H:i'],
+            'jam_selesai'           => ['required', 'date_format:H:i', 'after:jam_mulai'],
+            'topik'                 => ['nullable', 'string', 'max:200'],
+            'materi'                => ['nullable', 'string', 'max:1000'],
+            'catatan_guru'          => ['nullable', 'string', 'max:500'],
+            'presensi'              => ['required', 'array', 'min:1'],
+            'presensi.*.santri_id'  => ['required', 'exists:santri,id'],
+            'presensi.*.status'     => ['required', 'in:hadir,sakit,izin,alpa'],
+            'presensi.*.keterangan' => ['nullable', 'string', 'max:200'],
         ], [
-            'presensi.required'   => 'Data presensi santri wajib diisi.',
+            'presensi.required'       => 'Data presensi santri wajib diisi.',
             'tanggal.before_or_equal' => 'Tanggal tidak boleh lebih dari hari ini.',
         ]);
 
-        $jadwal = JadwalPelajaran::findOrFail($request->jadwal_pelajaran_id);
-        abort_if($jadwal->guru_id !== Auth::id(), 403);
+        $penugasan = PenugasanMengajar::findOrFail($request->penugasan_id);
+        abort_if($penugasan->guru_id !== Auth::id(), 403);
 
-        // Cek duplikat
-        $exists = Pertemuan::where('jadwal_pelajaran_id', $jadwal->id)
+        // Cek duplikat: kelas+mapel+guru yang sama, tanggal yang sama
+        $exists = Pertemuan::where('guru_id', $penugasan->guru_id)
+            ->where('kelas_id', $penugasan->kelas_id)
+            ->where('mata_pelajaran_id', $penugasan->mata_pelajaran_id)
             ->whereDate('tanggal', $request->tanggal)
             ->exists();
-        abort_if($exists, 422, 'Presensi tanggal ini sudah diinput.');
+        abort_if($exists, 422, 'Presensi untuk kelas & mapel ini pada tanggal tersebut sudah diinput.');
 
-        $pertemuan = DB::transaction(function () use ($request, $jadwal) {
-            $pertemuanKe = Pertemuan::where('jadwal_pelajaran_id', $jadwal->id)->count() + 1;
+        $pertemuan = DB::transaction(function () use ($request, $penugasan) {
+            $pertemuanKe = Pertemuan::where('guru_id', $penugasan->guru_id)
+                ->where('kelas_id', $penugasan->kelas_id)
+                ->where('mata_pelajaran_id', $penugasan->mata_pelajaran_id)
+                ->count() + 1;
 
             $pertemuan = Pertemuan::create([
-                'jadwal_pelajaran_id' => $jadwal->id,
-                'guru_id'             => Auth::id(),
-                'kelas_id'            => $jadwal->kelas_id,
-                'mata_pelajaran_id'   => $jadwal->mata_pelajaran_id,
+                'jadwal_pelajaran_id' => null, // fitur jadwal tidak dipakai lagi sebagai acuan
+                'guru_id'             => $penugasan->guru_id,
+                'kelas_id'            => $penugasan->kelas_id,
+                'mata_pelajaran_id'   => $penugasan->mata_pelajaran_id,
                 'tanggal'             => $request->tanggal,
                 'jam_mulai'           => $request->jam_mulai,
                 'jam_selesai'         => $request->jam_selesai,

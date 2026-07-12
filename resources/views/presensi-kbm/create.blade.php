@@ -1,12 +1,14 @@
 {{-- ============================================================ --}}
-{{-- resources/views/presensi-kbm/create.blade.php - revised    --}}
+{{-- resources/views/presensi-kbm/create.blade.php                --}}
+{{-- Diganti dari basis jadwal ke basis Penugasan Mengajar;        --}}
+{{-- guru pilih tanggal manual (maksimal hari ini)                 --}}
 {{-- ============================================================ --}}
 <x-app-layout>
     <x-slot name="header">Input Presensi</x-slot>
 
     <form method="POST" action="{{ route('guru.presensi.store') }}" id="form-presensi">
         @csrf
-        <input type="hidden" name="jadwal_pelajaran_id" value="{{ $jadwal->id }}">
+        <input type="hidden" name="penugasan_id" value="{{ $penugasan->id }}">
 
         <div class="space-y-5 max-w-3xl">
 
@@ -16,11 +18,10 @@
                     <div>
                         <p class="text-white/70 text-sm">Pertemuan ke-{{ $pertemuanKe }}</p>
                         <h2 class="text-2xl font-bold text-white mt-0.5">
-                            {{ $jadwal->mataPelajaran->nama }}
+                            {{ $penugasan->mataPelajaran->nama }}
                         </h2>
                         <p class="text-white/80 text-sm mt-1">
-                            {{ $jadwal->kelas->nama }} ·
-                            {{ now()->locale('id')->isoFormat('dddd, D MMMM Y') }}
+                            {{ $penugasan->kelas->nama }}
                         </p>
                     </div>
                     <a href="{{ route('guru.presensi.index') }}"
@@ -38,43 +39,52 @@
                 </div>
                 <div class="p-5 grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                        <label class="block text-xs text-siakad-secondary mb-1">Tanggal</label>
-                        <input type="date" name="tanggal" value="{{ today()->format('Y-m-d') }}"
+                        <label class="block text-xs text-siakad-secondary mb-1">
+                            Tanggal <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" name="tanggal" value="{{ old('tanggal', today()->format('Y-m-d')) }}"
                             max="{{ today()->format('Y-m-d') }}" required
                             class="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200
                               bg-gray-50 text-siakad-dark
                               focus:ring-2 outline-none transition">
+                        <p class="text-[11px] text-siakad-secondary mt-1">Tidak boleh lebih dari hari ini.</p>
                     </div>
                     <div>
                         <label class="block text-xs text-siakad-secondary mb-1">Jam Mulai</label>
-                        <input type="time" name="jam_mulai"
-                            value="{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}" required
+                        <input type="time" name="jam_mulai" value="{{ old('jam_mulai') }}" required
                             class="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200
                               bg-gray-50 text-siakad-dark
                               focus:ring-2 outline-none transition">
                     </div>
                     <div>
                         <label class="block text-xs text-siakad-secondary mb-1">Jam Selesai</label>
-                        <input type="time" name="jam_selesai"
-                            value="{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}" required
+                        <input type="time" name="jam_selesai" value="{{ old('jam_selesai') }}" required
                             class="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200
                               bg-gray-50 text-siakad-dark
                               focus:ring-2 outline-none transition">
                     </div>
                     <div>
                         <label class="block text-xs text-siakad-secondary mb-1">Topik</label>
-                        <input type="text" name="topik" placeholder="Topik pembelajaran"
+                        <input type="text" name="topik" value="{{ old('topik') }}" placeholder="Topik pembelajaran"
                             class="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200
                               bg-gray-50 text-siakad-dark
                               placeholder-gray-400 focus:ring-2 outline-none transition">
                     </div>
                     <div class="col-span-2 md:col-span-4">
-                        <label class="block text-xs text-siakad-secondary mb-1">Catatan Guru</label>
-                        <textarea name="catatan_guru" rows="2"
-                            placeholder="Catatan singkat materi yang disampaikan..."
+                        <label class="block text-xs text-siakad-secondary mb-1">Materi yang Disampaikan</label>
+                        <textarea name="materi" rows="2"
+                            placeholder="Ringkasan materi yang diajarkan pada pertemuan ini..."
                             class="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200
                                  bg-gray-50 text-siakad-dark
-                                 placeholder-gray-400 focus:ring-2 outline-none resize-none transition"></textarea>
+                                 placeholder-gray-400 focus:ring-2 outline-none resize-none transition">{{ old('materi') }}</textarea>
+                    </div>
+                    <div class="col-span-2 md:col-span-4">
+                        <label class="block text-xs text-siakad-secondary mb-1">Catatan Guru</label>
+                        <textarea name="catatan_guru" rows="2"
+                            placeholder="Catatan tambahan (opsional)..."
+                            class="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200
+                                 bg-gray-50 text-siakad-dark
+                                 placeholder-gray-400 focus:ring-2 outline-none resize-none transition">{{ old('catatan_guru') }}</textarea>
                     </div>
                 </div>
             </div>

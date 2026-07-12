@@ -40,7 +40,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Kelas & Jadwal
         Route::resource('kelas', \App\Http\Controllers\Kurikulum\KelasController::class);
+        // Catatan: fitur Jadwal Pelajaran (hari/jam) untuk sementara TIDAK dipakai
+        // sebagai syarat guru input presensi/nilai/jurnal (digantikan oleh Penugasan
+        // Mengajar di bawah). Route & controller-nya tetap ada, cuma menu di sidebar
+        // disembunyikan dulu.
         Route::resource('jadwal', \App\Http\Controllers\Kurikulum\JadwalController::class);
+
+        // Penugasan Mengajar: guru + mapel + kelas (tanpa jadwal hari/jam)
+        Route::get('penugasan', [\App\Http\Controllers\Kurikulum\PenugasanController::class, 'index'])->name('penugasan.index');
+        Route::get('penugasan/{guru}', [\App\Http\Controllers\Kurikulum\PenugasanController::class, 'show'])->name('penugasan.show');
+        Route::post('penugasan/{guru}', [\App\Http\Controllers\Kurikulum\PenugasanController::class, 'store'])->name('penugasan.store');
+        Route::delete('penugasan-hapus/{penugasan}', [\App\Http\Controllers\Kurikulum\PenugasanController::class, 'destroy'])->name('penugasan.destroy');
 
         // Penilaian
         Route::get('nilai', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'index'])->name('nilai.index');
@@ -71,7 +81,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Presensi KBM
         Route::get('presensi', [\App\Http\Controllers\Guru\PresensiController::class, 'index'])->name('presensi.index');
-        Route::get('presensi/create/{jadwal}', [\App\Http\Controllers\Guru\PresensiController::class, 'create'])->name('presensi.create');
+        Route::get('presensi/create/{penugasan}', [\App\Http\Controllers\Guru\PresensiController::class, 'create'])->name('presensi.create');
         Route::post('presensi', [\App\Http\Controllers\Guru\PresensiController::class, 'store'])->name('presensi.store');
         Route::get('presensi/{pertemuan}', [\App\Http\Controllers\Guru\PresensiController::class, 'show'])->name('presensi.show');
         Route::put('presensi/{pertemuan}', [\App\Http\Controllers\Guru\PresensiController::class, 'update'])->name('presensi.update');
