@@ -11,7 +11,7 @@ class KomponenNilai extends Model
 
     protected $table = 'komponen_nilai';
 
-    protected $fillable = ['nama', 'kode', 'bobot', 'urutan', 'is_active'];
+    protected $fillable = ['nama', 'kode', 'bobot', 'urutan', 'is_active', 'maks_input'];
 
     protected function casts(): array
     {

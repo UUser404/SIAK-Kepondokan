@@ -50,7 +50,7 @@
             <table class="w-full text-sm table-saas">
                 <thead style="background-color: rgba(35,76,106,0.04);">
                     <tr>
-                        @foreach(['Urutan','Kode','Nama Komponen','Mata Pelajaran','Tipe','Bobot','Status','Aksi'] as $h)
+                        @foreach(['Urutan','Kode','Nama Komponen','Mata Pelajaran','Tipe','Bobot','Maks Input','Status','Aksi'] as $h)
                         <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide
                                text-siakad-secondary dark:text-gray-400">{{ $h }}</th>
                         @endforeach
@@ -83,6 +83,9 @@
                         </td>
                         <td class="px-5 py-3.5">
                             <span class="font-bold text-siakad-dark dark:text-white">{{ $k->bobot }}%</span>
+                        </td>
+                        <td class="px-5 py-3.5 text-siakad-secondary dark:text-gray-400">
+                            {{ $k->maks_input }}x
                         </td>
                         <td class="px-5 py-3.5">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium

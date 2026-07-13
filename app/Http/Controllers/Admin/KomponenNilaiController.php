@@ -42,6 +42,7 @@ class KomponenNilaiController extends Controller
             'nama'              => ['required', 'string', 'max:100'],
             'kode'              => ['required', 'string', 'max:20', 'unique:komponen_nilai,kode'],
             'bobot'             => ['required', 'numeric', 'min:0', 'max:100'],
+            'maks_input'        => ['required', 'integer', 'min:1', 'max:20'],
             'tipe'              => ['required', 'in:harian,uts,uas,praktik'],
             'urutan'            => ['nullable', 'integer', 'min:0'],
             'deskripsi'         => ['nullable', 'string', 'max:500'],
@@ -83,6 +84,7 @@ class KomponenNilaiController extends Controller
                 Rule::unique('komponen_nilai', 'kode')->ignore($komponenNilai->id)
             ],
             'bobot'             => ['required', 'numeric', 'min:0', 'max:100'],
+            'maks_input'        => ['required', 'integer', 'min:1', 'max:20'],
             'tipe'              => ['required', 'in:harian,uts,uas,praktik'],
             'urutan'            => ['nullable', 'integer', 'min:0'],
             'deskripsi'         => ['nullable', 'string', 'max:500'],
