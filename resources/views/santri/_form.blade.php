@@ -187,7 +187,7 @@
                     <option value="">-- Pilih Kelas --</option>
                     @foreach($kelasList as $kelas)
                     <option value="{{ $kelas->id }}"
-                        @selected(old('kelas_id', $kelasAktif?->kelas_id ?? '') == $kelas->id)>
+                        @selected(old('kelas_id', $kelasAktif?->id ?? '') == $kelas->id)>
                         {{ $kelas->nama }} — {{ $kelas->tingkatan->nama }}
                     </option>
                     @endforeach
