@@ -8,7 +8,7 @@
         <a href="{{ route('admin.surat.index') }}"
             class="p-2 rounded-xl border border-gray-200
               text-siakad-secondary
-              hover:bg-gray-50 transition">
+              hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -69,7 +69,7 @@
                         class="px-4 py-2 text-sm font-medium rounded-xl border transition
                            border-gray-200
                            text-siakad-secondary
-                           hover:bg-gray-50">
+                           hover:bg-gray-50 dark:hover:bg-gray-700">
                         Muat Template
                     </button>
                 </div>

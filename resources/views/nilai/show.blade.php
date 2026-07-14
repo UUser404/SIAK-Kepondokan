@@ -12,7 +12,7 @@
         <a href="{{ route('guru.nilai.index') }}"
             class="p-2 rounded-xl border border-gray-200
               text-siakad-secondary
-              hover:bg-gray-50 transition">
+              hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -115,13 +115,13 @@
                         </tr>
                         <tr>
                             @foreach($komponen as $k)
-                                @for($slot = 1; $slot <= $k->maks_input; $slot++)
+                            @for($slot = 1; $slot <= $k->maks_input; $slot++)
                                 <th class="px-1 py-1.5 text-center text-[10px] font-medium text-siakad-secondary
                                     {{ $slot === 1 ? 'border-l' : '' }}" style="border-color: var(--border-color);">
                                     {{ $k->maks_input > 1 ? $slot : '' }}
                                 </th>
                                 @endfor
-                            @endforeach
+                                @endforeach
                         </tr>
                     </thead>
                     <tbody class="divide-y" style="border-color: var(--border-color);">
@@ -153,8 +153,8 @@
                             </td>
 
                             @foreach($komponen as $k)
-                                @php $slotNilai = $nilaiSantri[$k->id] ?? collect(); @endphp
-                                @for($slot = 1; $slot <= $k->maks_input; $slot++)
+                            @php $slotNilai = $nilaiSantri[$k->id] ?? collect(); @endphp
+                            @for($slot = 1; $slot <= $k->maks_input; $slot++)
                                 @php $nilaiExisting = $slotNilai[$slot]->nilai ?? ''; @endphp
                                 <td class="px-1.5 py-2 text-center {{ $slot === 1 ? 'border-l' : '' }}"
                                     style="border-color: var(--border-color);">
@@ -176,31 +176,31 @@
                                         data-bobot="{{ $k->bobot }}">
                                 </td>
                                 @endfor
-                            @endforeach
+                                @endforeach
 
-                            {{-- Nilai Akhir (kalkulasi live) --}}
-                            <td class="px-3 py-3 text-center border-l" style="border-color: var(--border-color);">
-                                <span id="nilai-akhir-{{ $santri->id }}"
-                                    class="text-sm font-bold {{ $nilaiAkhir ? ($nilaiAkhir->tuntas ? 'text-green-600' : 'text-red-600') : 'text-siakad-secondary' }}">
-                                    {{ $nilaiAkhir ? $nilaiAkhir->nilai_akhir : '—' }}
-                                </span>
-                            </td>
+                                {{-- Nilai Akhir (kalkulasi live) --}}
+                                <td class="px-3 py-3 text-center border-l" style="border-color: var(--border-color);">
+                                    <span id="nilai-akhir-{{ $santri->id }}"
+                                        class="text-sm font-bold {{ $nilaiAkhir ? ($nilaiAkhir->tuntas ? 'text-green-600' : 'text-red-600') : 'text-siakad-secondary' }}">
+                                        {{ $nilaiAkhir ? $nilaiAkhir->nilai_akhir : '—' }}
+                                    </span>
+                                </td>
 
-                            {{-- Status tuntas --}}
-                            <td class="px-3 py-3 text-center">
-                                <span id="status-{{ $santri->id }}">
-                                    @if($nilaiAkhir)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+                                {{-- Status tuntas --}}
+                                <td class="px-3 py-3 text-center">
+                                    <span id="status-{{ $santri->id }}">
+                                        @if($nilaiAkhir)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
                                     {{ $nilaiAkhir->tuntas
                                        ? 'bg-green-100 text-green-700'
                                        : 'bg-red-100 text-red-700' }}">
-                                        {{ $nilaiAkhir->tuntas ? 'Tuntas' : 'Belum' }}
+                                            {{ $nilaiAkhir->tuntas ? 'Tuntas' : 'Belum' }}
+                                        </span>
+                                        @else
+                                        <span class="text-gray-300 text-xs">—</span>
+                                        @endif
                                     </span>
-                                    @else
-                                    <span class="text-gray-300 text-xs">—</span>
-                                    @endif
-                                </span>
-                            </td>
+                                </td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -228,12 +228,23 @@
 
     @push('scripts')
     <script>
-        const KKM = {{ $mataPelajaran->kkm }};
+        const KKM = {
+            {
+                $mataPelajaran - > kkm
+            }
+        };
 
         // Data bobot per komponen dari server (id komponen -> bobot %)
         const bobotMap = {
-            @foreach($komponen as $k)
-            {{ $k->id }}: {{ $k->bobot }},
+            @foreach($komponen as $k) {
+                {
+                    $k - > id
+                }
+            }: {
+                {
+                    $k - > bobot
+                }
+            },
             @endforeach
         };
 

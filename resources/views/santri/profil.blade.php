@@ -12,7 +12,7 @@
     <div class="mb-6 flex items-center gap-3">
         <a href="{{ route('admin.santri.show', $santri) }}"
             class="p-2 rounded-xl border border-gray-200
-              text-siakad-secondary hover:bg-gray-50 transition">
+              text-siakad-secondary hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -26,11 +26,11 @@
     </div>
 
     @php
-        $kelasAktif = $santri->kelasAktif;
-        $kamarAktif = $santri->kamarAktif;
-        $nilaiAkhir = $santri->nilaiAkhir()->with('tahunAjaran')->latest('updated_at')->limit(10)->get();
-        $pelanggaran = $santri->pelanggaran()->with('kategori')->latest('tanggal')->limit(5)->get();
-        $prestasi = $santri->prestasi()->latest()->limit(5)->get();
+    $kelasAktif = $santri->kelasAktif;
+    $kamarAktif = $santri->kamarAktif;
+    $nilaiAkhir = $santri->nilaiAkhir()->with('tahunAjaran')->latest('updated_at')->limit(10)->get();
+    $pelanggaran = $santri->pelanggaran()->with('kategori')->latest('tanggal')->limit(5)->get();
+    $prestasi = $santri->prestasi()->latest()->limit(5)->get();
     @endphp
 
     <div class="space-y-5 max-w-5xl">

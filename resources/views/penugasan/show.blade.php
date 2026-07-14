@@ -9,7 +9,7 @@
     <div class="mb-6 flex items-center gap-3">
         <a href="{{ route('kurikulum.penugasan.index') }}"
             class="p-2 rounded-xl border border-gray-200
-              text-siakad-secondary hover:bg-gray-50 transition">
+              text-siakad-secondary hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -46,7 +46,7 @@
                 <div class="p-4 flex flex-wrap gap-2">
                     @foreach($rows as $p)
                     <span class="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-xl text-xs font-medium
-                                 bg-gray-100 text-siakad-dark">
+                                 bg-gray-100 dark:bg-gray-700 text-siakad-dark">
                         {{ $p->kelas->nama }}
                         <form method="POST" action="{{ route('kurikulum.penugasan.destroy', $p) }}"
                             onsubmit="return confirm('Hapus penugasan {{ $mapel->nama }} - {{ $p->kelas->nama }}?')">
@@ -108,7 +108,7 @@
                                    bg-gray-50 text-siakad-dark focus:ring-2 outline-none transition">
                             <option value="">-- Pilih Mapel --</option>
                             @foreach($mapelList as $m)
-                            <option value="{{ $m->id }}" @selected(old('mata_pelajaran_id') == $m->id)>{{ $m->nama }}</option>
+                            <option value="{{ $m->id }}" @selected(old('mata_pelajaran_id')==$m->id)>{{ $m->nama }}</option>
                             @endforeach
                         </select>
                         <p class="text-xs text-siakad-secondary mt-1.5">

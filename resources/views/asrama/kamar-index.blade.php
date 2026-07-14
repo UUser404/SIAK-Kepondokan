@@ -15,7 +15,7 @@
         </div>
         <a href="{{ route('kesantrian.asrama.index') }}"
             class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
-                  border border-gray-200 text-siakad-dark hover:bg-gray-50 transition-all">
+                  border border-gray-200 text-siakad-dark hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
             Kelola per Asrama
         </a>
     </div>
@@ -28,15 +28,15 @@
                        bg-gray-50 text-siakad-dark focus:ring-2 outline-none transition">
                 <option value="">Semua Asrama</option>
                 @foreach($asramaList as $a)
-                <option value="{{ $a->id }}" @selected(request('asrama_id') == $a->id)>{{ $a->nama }}</option>
+                <option value="{{ $a->id }}" @selected(request('asrama_id')==$a->id)>{{ $a->nama }}</option>
                 @endforeach
             </select>
             <select name="jenis" onchange="this.form.submit()"
                 class="px-3 py-2.5 text-sm rounded-xl border border-gray-200
                        bg-gray-50 text-siakad-dark focus:ring-2 outline-none transition">
                 <option value="">Semua Jenis</option>
-                <option value="putra" @selected(request('jenis') === 'putra')>Putra</option>
-                <option value="putri" @selected(request('jenis') === 'putri')>Putri</option>
+                <option value="putra" @selected(request('jenis')==='putra' )>Putra</option>
+                <option value="putri" @selected(request('jenis')==='putri' )>Putri</option>
             </select>
         </form>
     </div>
@@ -55,8 +55,8 @@
                 <tbody class="divide-y" style="border-color: var(--border-color);">
                     @forelse($kamarList as $kamar)
                     @php
-                        $terisi = $kamar->penempatanAktif->count();
-                        $sisa   = $kamar->kapasitas - $terisi;
+                    $terisi = $kamar->penempatanAktif->count();
+                    $sisa = $kamar->kapasitas - $terisi;
                     @endphp
                     <tr>
                         <td class="px-5 py-3.5 text-siakad-dark font-medium">{{ $kamar->asrama->nama ?? '-' }}</td>
@@ -73,9 +73,9 @@
                         </td>
                         <td class="px-5 py-3.5 text-siakad-secondary text-xs">
                             @forelse($kamar->penempatanAktif as $p)
-                                {{ $p->santri->nama_lengkap ?? '-' }}{{ !$loop->last ? ', ' : '' }}
+                            {{ $p->santri->nama_lengkap ?? '-' }}{{ !$loop->last ? ', ' : '' }}
                             @empty
-                                <span class="text-gray-400">Kosong</span>
+                            <span class="text-gray-400">Kosong</span>
                             @endforelse
                         </td>
                     </tr>

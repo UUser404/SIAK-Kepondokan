@@ -10,7 +10,7 @@
         <a href="{{ route('admin.ppdb.index') }}"
             class="p-2 rounded-xl border border-gray-200
               text-siakad-secondary
-              hover:bg-gray-50 transition">
+              hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -70,7 +70,7 @@
                                    text-siakad-dark focus:ring-2 outline-none transition">
                         <option value="">-- Pilih Tahun Ajaran --</option>
                         @foreach($tahunAjaranList as $ta)
-                        <option value="{{ $ta->id }}" @selected(old('tahun_ajaran_id') == $ta->id)>
+                        <option value="{{ $ta->id }}" @selected(old('tahun_ajaran_id')==$ta->id)>
                             {{ $ta->nama }}
                         </option>
                         @endforeach
