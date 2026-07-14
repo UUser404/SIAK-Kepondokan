@@ -34,11 +34,14 @@ class MasterDataSeeder extends Seeder
             ]
         );
 
-        // ---- Tingkatan (MTs setara SMP) ----
+        // ---- Tingkatan (MTs setara SMP, + SMA/MA) ----
         $tingkatan = [
             ['nama' => 'Kelas 7', 'urutan' => 1],
             ['nama' => 'Kelas 8', 'urutan' => 2],
             ['nama' => 'Kelas 9', 'urutan' => 3],
+            ['nama' => 'Kelas 10', 'urutan' => 4],
+            ['nama' => 'Kelas 11', 'urutan' => 5],
+            ['nama' => 'Kelas 12', 'urutan' => 6],
         ];
         foreach ($tingkatan as $t) {
             \App\Models\Tingkatan::firstOrCreate(['nama' => $t['nama']], $t);

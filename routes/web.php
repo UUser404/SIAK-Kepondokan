@@ -160,6 +160,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Master Data
         Route::resource('tahun-ajaran', \App\Http\Controllers\Admin\TahunAjaranController::class);
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [\App\Http\Controllers\Admin\TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
+        Route::resource('tingkatan', \App\Http\Controllers\Admin\TingkatanController::class)->except(['show']);
         Route::resource('mata-pelajaran', \App\Http\Controllers\Admin\MataPelajaranController::class);
         Route::resource('komponen-nilai', \App\Http\Controllers\Admin\KomponenNilaiController::class);
 
