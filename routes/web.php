@@ -102,6 +102,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // ==========================================
+    // WALI KELAS (status berbasis relasi kelas.wali_kelas_id, bukan role baru
+    // -- lihat docs/DEVELOPER_GUIDE.md untuk konteks keputusan ini)
+    // ==========================================
+    Route::prefix('wali-kelas')->name('wali-kelas.')->middleware('role:guru')->group(function () {
+        Route::get('dashboard', [\App\Http\Controllers\WaliKelas\DashboardController::class, 'index'])->name('dashboard');
+
+        // Predikat Sikap
+        Route::get('predikat-sikap/{kelas}', [\App\Http\Controllers\WaliKelas\PredikatSikapController::class, 'index'])->name('predikat-sikap.index');
+        Route::post('predikat-sikap/{kelas}', [\App\Http\Controllers\WaliKelas\PredikatSikapController::class, 'store'])->name('predikat-sikap.store');
+        Route::post('predikat-sikap/{kelas}/hitung-kedisiplinan', [\App\Http\Controllers\WaliKelas\PredikatSikapController::class, 'hitungKedisiplinan'])->name('predikat-sikap.hitung-kedisiplinan');
+
+        // Nilai Ekstrakurikuler
+        Route::get('nilai-ekstrakurikuler/{kelas}', [\App\Http\Controllers\WaliKelas\NilaiEkstrakurikulerController::class, 'index'])->name('nilai-ekstrakurikuler.index');
+        Route::post('nilai-ekstrakurikuler/{kelas}', [\App\Http\Controllers\WaliKelas\NilaiEkstrakurikulerController::class, 'store'])->name('nilai-ekstrakurikuler.store');
+
+        // Rapor -- reuse Kurikulum\RaporController, guard akses ada di controller itu sendiri
+        Route::get('rapor', [\App\Http\Controllers\Kurikulum\RaporController::class, 'index'])->name('rapor.index');
+        Route::get('rapor/{santri}', [\App\Http\Controllers\Kurikulum\RaporController::class, 'show'])->name('rapor.show');
+        Route::get('rapor/{santri}/cetak', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetak'])->name('rapor.cetak');
+    });
+
+    // ==========================================
     // KESANTRIAN
     // ==========================================
     Route::prefix('kesantrian')->name('kesantrian.')->middleware('role:kesantrian|sysadmin')->group(function () {
@@ -162,6 +184,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [\App\Http\Controllers\Admin\TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
         Route::resource('tingkatan', \App\Http\Controllers\Admin\TingkatanController::class)->except(['show']);
         Route::resource('mata-pelajaran', \App\Http\Controllers\Admin\MataPelajaranController::class);
+        Route::resource('ekstrakurikuler', \App\Http\Controllers\Admin\EkstrakurikulerController::class);
         Route::resource('komponen-nilai', \App\Http\Controllers\Admin\KomponenNilaiController::class);
 
         // PPDB

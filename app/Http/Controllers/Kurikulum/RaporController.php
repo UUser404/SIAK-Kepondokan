@@ -14,19 +14,48 @@ use App\Models\PresensiKbm;
 use App\Models\Pertemuan;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class RaporController extends Controller
 {
+    /**
+     * Guard akses: Wakil Kurikulum/Sysadmin bebas akses semua kelas/santri.
+     * Kalau yang akses seorang guru (Wali Kelas), batasi hanya untuk santri
+     * yang kelas aktifnya benar dia wali-i, di tahun ajaran aktif.
+     */
+    private function authorizeSantri(Santri $santri, ?TahunAjaran $ta): void
+    {
+        $user = Auth::user();
+        if ($user->role !== 'guru') return; // Kurikulum/Sysadmin: tidak dibatasi
+
+        $kelasAktif = $santri->santriKelas->firstWhere('status', 'aktif')?->kelas
+            ?? $santri->kelasAktif;
+
+        abort_if(
+            !$ta || !$kelasAktif || $kelasAktif->wali_kelas_id !== $user->id || $kelasAktif->tahun_ajaran_id !== $ta->id,
+            403,
+            'Anda bukan wali kelas untuk santri ini di tahun ajaran aktif.'
+        );
+    }
+
     /**
      * Index — pilih kelas untuk lihat rapor
      */
     public function index(Request $request)
     {
         $ta        = TahunAjaran::aktif();
-        $kelasList = Kelas::where('tahun_ajaran_id', $ta?->id)
+        $user      = Auth::user();
+
+        $kelasQuery = Kelas::where('tahun_ajaran_id', $ta?->id)
             ->with(['tingkatan', 'waliKelas'])
-            ->withCount('santri as jumlah_santri')
-            ->get();
+            ->withCount('santri as jumlah_santri');
+
+        // Wali Kelas (guru) cuma lihat kelas yang dia wali-i sendiri
+        if ($user->role === 'guru') {
+            $kelasQuery->where('wali_kelas_id', $user->id);
+        }
+
+        $kelasList = $kelasQuery->get();
 
         $kelasId  = $request->kelas_id;
         $kelas    = $kelasId ? Kelas::with(['tingkatan', 'waliKelas'])->find($kelasId) : null;
@@ -54,6 +83,7 @@ class RaporController extends Controller
     public function show(Santri $santri)
     {
         $ta = TahunAjaran::aktif();
+        $this->authorizeSantri($santri, $ta);
 
         $nilaiAkhir = NilaiAkhir::where('santri_id', $santri->id)
             ->where('tahun_ajaran_id', $ta?->id)
@@ -114,6 +144,7 @@ class RaporController extends Controller
     public function cetak(Santri $santri)
     {
         $ta = TahunAjaran::aktif();
+        $this->authorizeSantri($santri, $ta);
 
         $nilaiAkhir = NilaiAkhir::where('santri_id', $santri->id)
             ->where('tahun_ajaran_id', $ta?->id)

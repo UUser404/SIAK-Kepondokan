@@ -148,6 +148,22 @@ $active = fn(string $prefix) => str_starts_with($current, $prefix)
     <span class="sidebar-text">AI Advisor</span>
 </a>
 
+
+@if(Auth::user()->isWaliKelas())
+<div class="pt-4 pb-1">
+    <p class="px-3 text-[10px] font-semibold uppercase tracking-widest sidebar-section-title"
+        style="color: var(--text-secondary); opacity: 0.6;">Wali Kelas</p>
+</div>
+<a href="{{ route('wali-kelas.dashboard') }}"
+    class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active('wali-kelas') }}"
+    style="color: var(--text-secondary);">
+    <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+    <span class="sidebar-text">Dashboard Wali Kelas</span>
+</a>
+@endif
 @endif
 
 {{-- ==================== KESANTRIAN ==================== --}}
@@ -235,6 +251,7 @@ $active = fn(string $prefix) => str_starts_with($current, $prefix)
 ['route'=>'admin.tahun-ajaran.index', 'prefix'=>'admin.tahun-ajaran', 'label'=>'Tahun Ajaran', 'icon'=>'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'],
 ['route'=>'admin.tingkatan.index', 'prefix'=>'admin.tingkatan', 'label'=>'Tingkatan', 'icon'=>'M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z'],
 ['route'=>'admin.mata-pelajaran.index', 'prefix'=>'admin.mata-pelajaran', 'label'=>'Mata Pelajaran', 'icon'=>'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'],
+['route'=>'admin.ekstrakurikuler.index', 'prefix'=>'admin.ekstrakurikuler', 'label'=>'Ekstrakurikuler', 'icon'=>'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'],
 ] as $item)
 <a href="{{ route($item['route']) }}"
     class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active($item['prefix']) }}"
