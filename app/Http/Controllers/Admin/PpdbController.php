@@ -180,21 +180,31 @@ class PpdbController extends Controller
         abort_if($pendaftar->status !== 'diterima', 422, 'Hanya pendaftar berstatus diterima yang bisa dikonversi.');
         abort_if($pendaftar->santri_id !== null, 422, 'Pendaftar sudah dikonversi.');
 
-        $santri = DB::transaction(function () use ($pendaftar) {
+        // Dibuat DI LUAR transaksi supaya bisa tetap dibawa ke redirect
+        // walaupun transaksinya sendiri cuma peduli data tersimpan.
+        $plainPassword = Str::random(10);
+
+        $santri = DB::transaction(function () use ($pendaftar, $plainPassword) {
             // Generate NIS otomatis: tahun masuk + urutan
             $tahunMasuk = now()->year;
             $urutan     = Santri::whereYear('created_at', $tahunMasuk)->count() + 1;
             $nis        = $tahunMasuk . str_pad($urutan, 4, '0', STR_PAD_LEFT);
 
-            // Buat user account
+            // Buat user account (portal santri).
+            // Sengaja NONAKTIF dulu (is_active = false) -- Staf Admin yang
+            // aktifkan manual dari halaman Profil Santri setelah kredensial
+            // ini disampaikan dengan aman ke santri/wali. Password RANDOM
+            // (bukan NIS yang berurutan & bisa ditebak) -- ditampilkan SEKALI
+            // ke Staf Admin lewat flash session, tidak pernah disimpan plain.
             $user = User::create([
                 'name'      => $pendaftar->nama_lengkap,
                 'email'     => strtolower(str_replace(' ', '.', $pendaftar->nama_lengkap))
                                . '.' . $nis . '@santri.alislam.sch.id',
-                'password'  => Hash::make($nis),
+                'password'  => Hash::make($plainPassword),
                 'role'      => 'santri',
-                'is_active' => true,
+                'is_active' => false,
             ]);
+            $user->assignRole('santri');
 
             // Buat data santri
             $santri = Santri::create([
@@ -224,7 +234,8 @@ class PpdbController extends Controller
         });
 
         return redirect()->route('admin.santri.show', $santri)
-            ->with('success', "Berhasil dikonversi. NIS santri: {$santri->nis}");
+            ->with('success', "Berhasil dikonversi. NIS santri: {$santri->nis}")
+            ->with('new_password', $plainPassword);
     }
 
     // ==========================================

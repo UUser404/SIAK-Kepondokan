@@ -39,7 +39,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('dashboard', [\App\Http\Controllers\Kurikulum\DashboardController::class, 'index'])->name('dashboard');
 
         // Kelas & Jadwal
-        Route::resource('kelas', \App\Http\Controllers\Kurikulum\KelasController::class);
+        Route::resource('kelas', \App\Http\Controllers\Kurikulum\KelasController::class)
+            ->parameters(['kelas' => 'kelas']);
         // Catatan: fitur Jadwal Pelajaran (hari/jam) untuk sementara TIDAK dipakai
         // sebagai syarat guru input presensi/nilai/jurnal (digantikan oleh Penugasan
         // Mengajar di bawah). Route & controller-nya tetap ada, cuma menu di sidebar

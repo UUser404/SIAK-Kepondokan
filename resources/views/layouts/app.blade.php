@@ -74,7 +74,7 @@
 
         .sidebar-link.active {
             background-color: var(--siakad-primary);
-            color: white;
+            color: white !important;
         }
 
         .sidebar-link.active:hover {
@@ -396,30 +396,30 @@
 
         {{-- =================== SIDEBAR =================== --}}
         <aside class="fixed inset-y-0 left-0 z-40 w-64 border-r transition-transform duration-300
-                          transform md:translate-x-0 md:sticky md:top-0 md:h-screen"
-            style="background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color);"
+                  transform md:translate-x-0 md:sticky md:top-0 flex flex-col"
+            style="background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); height: 100vh;"
             :class="{
-                       'translate-x-0': mobileSidebarOpen,
-                       '-translate-x-full': !mobileSidebarOpen,
-                       'w-64': sidebarOpen,
-                       'w-20': !sidebarOpen && !mobileSidebarOpen
-                   }">
+               'translate-x-0': mobileSidebarOpen,
+               '-translate-x-full': !mobileSidebarOpen,
+               'w-64': sidebarOpen,
+               'w-20': !sidebarOpen && !mobileSidebarOpen
+           }">
 
             {{-- Logo --}}
-            <div class="h-16 flex items-center justify-between px-4 logo-section"
+            <div class="h-16 flex items-center justify-between px-4 logo-section flex-shrink-0"
                 style="border-bottom: 1px solid var(--border-color);">
                 <div class="flex items-center gap-3 overflow-hidden">
                     <button @click="if(!sidebarOpen) sidebarOpen = true"
                         :class="!sidebarOpen ? 'cursor-pointer' : 'cursor-default'"
                         class="w-9 h-9 rounded-lg bg-siakad-primary flex items-center
-                                       justify-center flex-shrink-0 transition"
+                               justify-center flex-shrink-0 transition"
                         style="background-color: var(--siakad-primary);">
                         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13
-                                         C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477
-                                         14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247
-                                         18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                 C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477
+                                 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247
+                                 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
                     </button>
                     <div class="sidebar-logo-text">
@@ -451,16 +451,17 @@
             </div>
 
             {{-- Navigation --}}
-            <nav class="p-3 space-y-1 overflow-y-auto" style="max-height: calc(100vh - 180px);">
+            <nav class="flex-1 p-3 space-y-1 overflow-y-auto min-h-0"
+                style="background-color: var(--bg-sidebar);">
                 @include('layouts.partials.sidebar-nav')
             </nav>
 
             {{-- User info --}}
-            <div class="absolute bottom-0 left-0 right-0 p-3"
+            <div class="flex-shrink-0 p-3"
                 style="border-top: 1px solid var(--border-color); background-color: var(--bg-sidebar);">
                 <div class="flex items-center gap-3 user-section">
                     <div class="w-9 h-9 rounded-lg flex items-center justify-center
-                                    text-white text-sm font-semibold flex-shrink-0"
+                            text-white text-sm font-semibold flex-shrink-0"
                         style="background-color: var(--siakad-primary);">
                         {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                     </div>
@@ -479,7 +480,7 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0
-                                             01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                     01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                             </svg>
                         </button>
                     </form>
