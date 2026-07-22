@@ -160,7 +160,8 @@ class PresensiController extends Controller
         abort_if($pertemuan->guru_id !== Auth::id() && !Auth::user()->isManajemen(), 403);
 
         $pertemuan->load([
-            'mataPelajaran', 'kelas',
+            'mataPelajaran',
+            'kelas',
             'presensiKbm.santri',
         ]);
 
@@ -172,6 +173,32 @@ class PresensiController extends Controller
         ];
 
         return view('presensi-kbm.show', compact('pertemuan', 'rekap'));
+    }
+
+    /**
+     * Form edit presensi
+     */
+    public function edit(Pertemuan $pertemuan)
+    {
+        abort_if($pertemuan->guru_id !== Auth::id(), 403);
+
+        $ta = TahunAjaran::aktif();
+
+        $pertemuan->load([
+            'mataPelajaran',
+            'kelas',
+            'presensiKbm.santri',
+        ]);
+
+        // Daftar santri di kelas ini
+        $santriList = SantriKelas::where('kelas_id', $pertemuan->kelas_id)
+            ->where('status', 'aktif')
+            ->when($ta, fn($q) => $q->where('tahun_ajaran_id', $ta->id))
+            ->with('santri')
+            ->get()
+            ->sortBy('santri.nama_lengkap');
+
+        return view('presensi-kbm.edit', compact('pertemuan', 'santriList'));
     }
 
     /**
@@ -188,7 +215,7 @@ class PresensiController extends Controller
             'presensi'     => ['required', 'array'],
             'presensi.*.santri_id' => ['required', 'exists:santri,id'],
             'presensi.*.status'    => ['required', 'in:hadir,sakit,izin,alpa'],
-            'presensi.*.keterangan'=> ['nullable', 'string', 'max:200'],
+            'presensi.*.keterangan' => ['nullable', 'string', 'max:200'],
         ]);
 
         DB::transaction(function () use ($request, $pertemuan) {
@@ -210,5 +237,22 @@ class PresensiController extends Controller
 
         return redirect()->route('guru.presensi.show', $pertemuan)
             ->with('success', 'Presensi berhasil diperbarui.');
+    }
+
+    /**
+     * Hapus pertemuan + presensi
+     */
+    public function destroy(Pertemuan $pertemuan)
+    {
+        abort_if($pertemuan->guru_id !== Auth::id(), 403);
+
+        DB::transaction(function () use ($pertemuan) {
+            PresensiKbm::where('pertemuan_id', $pertemuan->id)->delete();
+            ActivityLogService::logDelete($pertemuan);
+            $pertemuan->delete();
+        });
+
+        return redirect()->route('guru.presensi.index')
+            ->with('success', 'Pertemuan presensi berhasil dihapus.');
     }
 }

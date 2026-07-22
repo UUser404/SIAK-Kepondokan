@@ -100,8 +100,13 @@ class NilaiController extends Controller
             ->keyBy('santri_id');
 
         return view('nilai.show', compact(
-            'kelas', 'mataPelajaran', 'komponen',
-            'santriList', 'nilaiMap', 'nilaiAkhirMap', 'ta'
+            'kelas',
+            'mataPelajaran',
+            'komponen',
+            'santriList',
+            'nilaiMap',
+            'nilaiAkhirMap',
+            'ta'
         ));
     }
 

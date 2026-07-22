@@ -29,13 +29,19 @@
 
         {{-- Info card --}}
         <div class="card-saas overflow-hidden">
-            <div class="p-5 bg-gradient-to-r from-siakad-primary to-siakad-dark">
+            <div class="p-5" style="background: linear-gradient(135deg, var(--siakad-primary), var(--siakad-dark));">
                 @if($pertemuan->topik)
                 <p class="text-white/70 text-xs uppercase tracking-wide mb-1">Topik</p>
                 <p class="font-semibold text-white">{{ $pertemuan->topik }}</p>
                 @endif
+
+                @if($pertemuan->materi)
+                <p class="text-white/70 text-xs uppercase tracking-wide mb-1 mt-3">Materi yang Disampaikan</p>
+                <p class="text-white/90 text-sm leading-relaxed">{{ $pertemuan->materi }}</p>
+                @endif
+
                 {{-- Rekap badges --}}
-                <div class="flex flex-wrap gap-2 mt-3">
+                <div class="flex flex-wrap gap-2 mt-4">
                     @foreach([
                     ['hadir', $rekap['hadir'], 'H'],
                     ['sakit', $rekap['sakit'], 'S'],
@@ -72,10 +78,10 @@
                                 {{ $p->santri->nama_lengkap }}
                             </td>
                             <td class="px-5 py-3">
-                                <span @class([ 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold' , 'bg-green-100 text-green-700'=> $p->status === 'hadir',
-                                    'bg-blue-100 text-blue-700' => $p->status === 'sakit',
-                                    'bg-yellow-100 text-yellow-700' => $p->status === 'izin',
-                                    'bg-red-100 text-red-700' => $p->status === 'alpa',
+                                <span @class([ 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold' , 'bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-300 ring-1 ring-green-200 dark:ring-green-800'=> $p->status === 'hadir',
+                                    'bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800' => $p->status === 'sakit',
+                                    'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 ring-1 ring-yellow-200 dark:ring-yellow-800' => $p->status === 'izin',
+                                    'bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800' => $p->status === 'alpa',
                                     ])>
                                     {{ ucfirst($p->status) }}
                                 </span>

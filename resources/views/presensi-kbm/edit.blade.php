@@ -1,14 +1,13 @@
 {{-- ============================================================ --}}
-{{-- resources/views/presensi-kbm/create.blade.php                --}}
-{{-- Diganti dari basis jadwal ke basis Penugasan Mengajar;        --}}
-{{-- guru pilih tanggal manual (maksimal hari ini)                 --}}
+{{-- resources/views/presensi-kbm/edit.blade.php                 --}}
+{{-- Form edit presensi (koreksi data)                           --}}
 {{-- ============================================================ --}}
 <x-app-layout>
-    <x-slot name="header">Input Presensi</x-slot>
+    <x-slot name="header">Edit Presensi</x-slot>
 
-    <form method="POST" action="{{ route('guru.presensi.store') }}" id="form-presensi">
+    <form method="POST" action="{{ route('guru.presensi.update', $pertemuan) }}" id="form-presensi">
         @csrf
-        <input type="hidden" name="penugasan_id" value="{{ $penugasan->id }}">
+        @method('PUT')
 
         <div class="space-y-5 max-w-3xl">
 
@@ -16,15 +15,15 @@
             <div class="p-5 rounded-2xl bg-gradient-to-r from-siakad-primary to-siakad-dark">
                 <div class="flex items-start justify-between">
                     <div>
-                        <p class="text-white/70 text-sm">Pertemuan ke-{{ $pertemuanKe }}</p>
+                        <p class="text-white/70 text-sm">Pertemuan ke-{{ $pertemuan->pertemuan_ke }}</p>
                         <h2 class="text-2xl font-bold text-white mt-0.5">
-                            {{ $penugasan->mataPelajaran->nama }}
+                            {{ $pertemuan->mataPelajaran->nama }}
                         </h2>
                         <p class="text-white/80 text-sm mt-1">
-                            {{ $penugasan->kelas->nama }}
+                            {{ $pertemuan->kelas->nama }}
                         </p>
                     </div>
-                    <a href="{{ route('guru.presensi.index') }}"
+                    <a href="{{ route('guru.presensi.show', $pertemuan) }}"
                         class="text-white/70 hover:text-white text-sm transition-colors">← Batal</a>
                 </div>
             </div>
@@ -39,50 +38,35 @@
                 </div>
                 <div class="p-5 grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                        <label class="block text-xs text-siakad-secondary mb-1">
-                            Tanggal <span class="text-red-500">*</span>
-                        </label>
-                        <input type="date" name="tanggal" value="{{ old('tanggal', today()->format('Y-m-d')) }}"
-                            max="{{ today()->format('Y-m-d') }}" required
+                        <label class="block text-xs text-siakad-secondary mb-1">Tanggal</label>
+                        <input type="date" value="{{ $pertemuan->tanggal->format('Y-m-d') }}"
+                            disabled
                             class="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200
-                              bg-gray-50 text-siakad-dark
-                              focus:ring-2 outline-none transition">
-                        <p class="text-[11px] text-siakad-secondary mt-1">Tidak boleh lebih dari hari ini.</p>
+                              bg-gray-100 text-siakad-dark opacity-75
+                              focus:ring-2 outline-none transition cursor-not-allowed">
+                        <p class="text-[11px] text-siakad-secondary mt-1">Tidak bisa diubah</p>
                     </div>
                     <div>
-                        <label class="block text-xs text-siakad-secondary mb-1">
-                            Jam Mulai <span class="text-red-500">*</span>
-                        </label>
-                        <select name="jam_mulai" id="jam_mulai" required
-                            onchange="calculateJamSelesai()"
+                        <label class="block text-xs text-siakad-secondary mb-1">Jam Mulai</label>
+                        <input type="time" value="{{ $pertemuan->jam_mulai }}"
+                            disabled
                             class="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200
-                              bg-gray-50 text-siakad-dark
-                              focus:ring-2 outline-none transition">
-                            <option value="">-- Pilih Jam Mulai --</option>
-                            @foreach(config('siak.presensi.jam_mulai') as $jam => $label)
-                            <option value="{{ $jam }}" {{ old('jam_mulai') === $jam ? 'selected' : '' }}>
-                                {{ $label }}
-                            </option>
-                            @endforeach
-                        </select>
+                              bg-gray-100 text-siakad-dark opacity-75
+                              focus:ring-2 outline-none transition cursor-not-allowed">
+                        <p class="text-[11px] text-siakad-secondary mt-1">Tidak bisa diubah</p>
                     </div>
                     <div>
-                        <label class="block text-xs text-siakad-secondary mb-1">
-                            Jam Selesai <span class="text-red-500">*</span>
-                        </label>
-                        <input type="time" name="jam_selesai" id="jam_selesai"
-                            value="{{ old('jam_selesai') }}"
-                            placeholder="--:--"
-                            required readonly
+                        <label class="block text-xs text-siakad-secondary mb-1">Jam Selesai</label>
+                        <input type="time" value="{{ $pertemuan->jam_selesai }}"
+                            disabled
                             class="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200
-                              bg-gray-100 text-siakad-dark
-                              focus:ring-2 outline-none transition cursor-not-allowed opacity-75
-                              placeholder-gray-400">
-                        <p class="text-[11px] text-siakad-secondary mt-1">Otomatis terisi dari jam mulai + {{ config('siak.presensi.durasi_jam') }}</p>
+                              bg-gray-100 text-siakad-dark opacity-75
+                              focus:ring-2 outline-none transition cursor-not-allowed">
+                        <p class="text-[11px] text-siakad-secondary mt-1">Tidak bisa diubah</p>
                     </div>
                     <div>
                         <label class="block text-xs text-siakad-secondary mb-1">Topik</label>
-                        <input type="text" name="topik" value="{{ old('topik') }}" placeholder="Topik pembelajaran"
+                        <input type="text" name="topik" value="{{ old('topik', $pertemuan->topik) }}" placeholder="Topik pembelajaran"
                             class="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200
                               bg-gray-50 text-siakad-dark
                               placeholder-gray-400 focus:ring-2 outline-none transition">
@@ -93,7 +77,7 @@
                             placeholder="Ringkasan materi yang diajarkan pada pertemuan ini..."
                             class="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200
                                  bg-gray-50 text-siakad-dark
-                                 placeholder-gray-400 focus:ring-2 outline-none resize-none transition">{{ old('materi') }}</textarea>
+                                 placeholder-gray-400 focus:ring-2 outline-none resize-none transition">{{ old('materi', $pertemuan->materi) }}</textarea>
                     </div>
                     <div class="col-span-2 md:col-span-4">
                         <label class="block text-xs text-siakad-secondary mb-1">Catatan Guru</label>
@@ -101,7 +85,7 @@
                             placeholder="Catatan tambahan (opsional)..."
                             class="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200
                                  bg-gray-50 text-siakad-dark
-                                 placeholder-gray-400 focus:ring-2 outline-none resize-none transition">{{ old('catatan_guru') }}</textarea>
+                                 placeholder-gray-400 focus:ring-2 outline-none resize-none transition">{{ old('catatan_guru', $pertemuan->catatan_guru) }}</textarea>
                     </div>
                 </div>
             </div>
@@ -144,7 +128,10 @@
                 <div class="divide-y max-h-[65vh] overflow-y-auto"
                     style="border-color: var(--border-color);">
                     @foreach($santriList as $i => $sk)
-                    @php $santri = $sk->santri; @endphp
+                    @php
+                    $santri = $sk->santri;
+                    $presensi = $pertemuan->presensiKbm->firstWhere('santri_id', $santri->id);
+                    @endphp
                     <div class="px-5 py-3 flex items-center gap-4">
                         <span class="text-xs text-siakad-secondary w-5 flex-shrink-0">
                             {{ $i + 1 }}
@@ -173,7 +160,8 @@
                                     name="presensi[{{ $i }}][status]"
                                     value="{{ $status }}"
                                     class="sr-only peer"
-                                    onchange="updateCount()">
+                                    onchange="updateCount()"
+                                    {{ $presensi && $presensi->status === $status ? 'checked' : '' }}>
                                 <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl text-xs
                                      font-bold border-2 transition select-none cursor-pointer
                                      peer-checked:shadow-md
@@ -207,9 +195,9 @@
                     style="background-color: var(--siakad-primary);"
                     onmouseover="this.style.backgroundColor='var(--siakad-dark)'"
                     onmouseout="this.style.backgroundColor='var(--siakad-primary)'">
-                    Simpan Presensi
+                    Simpan Perubahan
                 </button>
-                <a href="{{ route('guru.presensi.index') }}"
+                <a href="{{ route('guru.presensi.show', $pertemuan) }}"
                     class="px-4 py-2.5 text-sm text-siakad-secondary
                   hover:text-siakad-dark transition-colors">
                     Batal
@@ -221,50 +209,6 @@
 
     @push('scripts')
     <script>
-        // Durasi default dari config (format HH:MM)
-        const DURASI_JAM = '{{ config("siak.presensi.durasi_jam") }}'; // contoh: '01:20'
-
-        function calculateJamSelesai() {
-            const jamMulaiSelect = document.getElementById('jam_mulai');
-            const jamSelesaiInput = document.getElementById('jam_selesai');
-
-            if (!jamMulaiSelect.value) {
-                jamSelesaiInput.value = '';
-                jamSelesaiInput.placeholder = '--:--';
-                return;
-            }
-
-            // Parse jam mulai (format HH:MM)
-            const [jamStr, menitStr] = jamMulaiSelect.value.split(':');
-            let jam = parseInt(jamStr);
-            let menit = parseInt(menitStr);
-
-            // Parse durasi (format HH:MM)
-            const [durasiJamStr, durasiMenitStr] = DURASI_JAM.split(':');
-            const durasiJam = parseInt(durasiJamStr);
-            const durasiMenit = parseInt(durasiMenitStr);
-
-            // Tambahkan durasi
-            menit += durasiMenit;
-            if (menit >= 60) {
-                jam += Math.floor(menit / 60);
-                menit = menit % 60;
-            }
-            jam += durasiJam;
-
-            // Pastikan jam tidak melebihi 24
-            if (jam >= 24) {
-                jam = jam % 24;
-            }
-
-            // Format ke HH:MM
-            const jamSelesai = String(jam).padStart(2, '0') + ':' + String(menit).padStart(2, '0');
-            jamSelesaiInput.value = jamSelesai;
-            jamSelesaiInput.placeholder = jamSelesai;
-
-            console.log('Jam Mulai:', jamMulaiSelect.value, 'Durasi:', DURASI_JAM, 'Jam Selesai:', jamSelesai);
-        }
-
         function updateCount() {
             const counts = {
                 hadir: 0,
@@ -286,11 +230,7 @@
             updateCount();
         }
 
-        // Initialize jam selesai jika ada old value
-        @if(old('jam_mulai'))
-        calculateJamSelesai();
-        @endif
-
+        // Initialize on page load
         updateCount();
     </script>
     @endpush

@@ -85,7 +85,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('presensi/create/{penugasan}', [\App\Http\Controllers\Guru\PresensiController::class, 'create'])->name('presensi.create');
         Route::post('presensi', [\App\Http\Controllers\Guru\PresensiController::class, 'store'])->name('presensi.store');
         Route::get('presensi/{pertemuan}', [\App\Http\Controllers\Guru\PresensiController::class, 'show'])->name('presensi.show');
+        Route::get('presensi/{pertemuan}/edit', [\App\Http\Controllers\Guru\PresensiController::class, 'edit'])->name('presensi.edit');
         Route::put('presensi/{pertemuan}', [\App\Http\Controllers\Guru\PresensiController::class, 'update'])->name('presensi.update');
+        Route::delete('presensi/{pertemuan}', [\App\Http\Controllers\Guru\PresensiController::class, 'destroy'])->name('presensi.destroy');
 
         // Nilai (hanya mapel sendiri)
         Route::get('nilai', [\App\Http\Controllers\Guru\NilaiController::class, 'index'])->name('nilai.index');

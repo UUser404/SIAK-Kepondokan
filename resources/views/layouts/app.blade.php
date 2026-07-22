@@ -46,6 +46,9 @@
         }
 
         .dark {
+            --siakad-dark: #3B5C7F;
+            --siakad-primary: #4A73A0;
+            --siakad-secondary: #6B8CC9;
             --bg-body: #111827;
             --bg-card: #1F2937;
             --bg-sidebar: #1F2937;
