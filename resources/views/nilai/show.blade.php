@@ -1,6 +1,9 @@
 {{-- ============================================================ --}}
 {{-- resources/views/nilai/show.blade.php                        --}}
-{{-- Spreadsheet-style input nilai                               --}}
+{{-- Spreadsheet-style input nilai — mendukung banyak input per   --}}
+{{-- komponen (UH x2, Praktik x2, Tugas x4, dst sesuai maks_input) --}}
+{{-- Nilai akhir komponen = rata-rata dari slot yang TERISI saja   --}}
+{{-- (slot kosong dilewati, TIDAK dianggap 0)                      --}}
 {{-- ============================================================ --}}
 <x-app-layout>
     <x-slot name="header">Input Nilai — {{ $mataPelajaran->nama }}</x-slot>
@@ -9,7 +12,7 @@
         <a href="{{ route('guru.nilai.index') }}"
             class="p-2 rounded-xl border border-gray-200
               text-siakad-secondary
-              hover:bg-gray-50 transition">
+              hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -38,9 +41,18 @@
                 <span class="text-xs font-semibold text-siakad-dark">
                     {{ $k->bobot }}%
                 </span>
+                @if($k->maks_input > 1)
+                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-white text-siakad-secondary">
+                    maks {{ $k->maks_input }}x
+                </span>
+                @endif
             </div>
             @endforeach
         </div>
+        <p class="text-[11px] text-siakad-secondary mt-3">
+            Komponen dengan input lebih dari 1x (misalnya Tugas) boleh diisi sebagian saja —
+            nilai akhir komponen dihitung dari rata-rata slot yang <b>terisi saja</b>, slot kosong dilewati (bukan dianggap 0).
+        </p>
     </div>
 
     <form method="POST" action="{{ route('guru.nilai.bulk') }}" id="form-nilai">
@@ -65,12 +77,6 @@
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button type="button" onclick="isiSemua()"
-                        class="px-3 py-1.5 text-xs font-medium rounded-xl border border-gray-200
-                           text-siakad-secondary
-                           hover:bg-gray-50 transition">
-                        Isi KKM Semua
-                    </button>
                     <button type="submit"
                         class="px-4 py-1.5 text-xs font-semibold rounded-xl text-white transition
                            hover:-translate-y-0.5"
@@ -84,36 +90,45 @@
                 <table class="w-full text-sm table-saas">
                     <thead style="background-color: rgba(35,76,106,0.04);">
                         <tr>
-                            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide
-                               text-siakad-secondary sticky left-0 z-10 min-w-[200px]"
+                            <th rowspan="2" class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide
+                               text-siakad-secondary sticky left-0 z-10 min-w-[200px] align-bottom"
                                 style="background-color: rgba(35,76,106,0.04);">
                                 Santri
                             </th>
                             @foreach($komponen as $k)
-                            <th class="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide
-                               text-siakad-secondary min-w-[90px]">
+                            <th colspan="{{ $k->maks_input }}" class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide
+                               text-siakad-secondary border-l" style="border-color: var(--border-color);">
                                 {{ $k->kode }}
                                 <span class="block text-[10px] font-normal normal-case opacity-70">
                                     {{ $k->bobot }}%
                                 </span>
                             </th>
                             @endforeach
-                            <th class="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide
-                               min-w-[80px]"
-                                style="color: var(--siakad-primary);">
+                            <th rowspan="2" class="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide
+                               min-w-[80px] align-bottom border-l" style="color: var(--siakad-primary); border-color: var(--border-color);">
                                 Akhir
                             </th>
-                            <th class="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide
-                               text-siakad-secondary min-w-[60px]">
+                            <th rowspan="2" class="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide
+                               text-siakad-secondary min-w-[60px] align-bottom">
                                 Status
                             </th>
+                        </tr>
+                        <tr>
+                            @foreach($komponen as $k)
+                            @for($slot = 1; $slot <= $k->maks_input; $slot++)
+                                <th class="px-1 py-1.5 text-center text-[10px] font-medium text-siakad-secondary
+                                    {{ $slot === 1 ? 'border-l' : '' }}" style="border-color: var(--border-color);">
+                                    {{ $k->maks_input > 1 ? $slot : '' }}
+                                </th>
+                                @endfor
+                                @endforeach
                         </tr>
                     </thead>
                     <tbody class="divide-y" style="border-color: var(--border-color);">
                         @foreach($santriList as $i => $sk)
                         @php
                         $santri = $sk->santri;
-                        $nilaiSantri= $nilaiMap[$santri->id] ?? collect();
+                        $nilaiSantri = $nilaiMap[$santri->id] ?? collect();
                         $nilaiAkhir = $nilaiAkhirMap[$santri->id] ?? null;
                         @endphp
                         <tr class="dark:hover:bg-gray-700/30" id="row-{{ $santri->id }}">
@@ -138,51 +153,54 @@
                             </td>
 
                             @foreach($komponen as $k)
-                            @php
-                            $nilaiExisting = $nilaiSantri[$k->id]?->nilai ?? '';
-                            @endphp
-                            <td class="px-2 py-2 text-center">
-                                <input type="number"
-                                    name="nilai[{{ $santri->id }}][{{ $k->id }}]"
-                                    value="{{ $nilaiExisting }}"
-                                    min="0" max="100" step="0.5"
-                                    placeholder="—"
-                                    oninput="hitungAkhir({{ $santri->id }})"
-                                    class="w-16 px-2 py-1.5 text-center text-sm rounded-lg border
-                                      border-gray-200
-                                      bg-gray-50
-                                      text-siakad-dark
-                                      placeholder-gray-300
-                                      focus:ring-2 focus:border-transparent outline-none transition
-                                      nilai-input"
-                                    data-santri="{{ $santri->id }}"
-                                    data-bobot="{{ $k->bobot }}">
-                            </td>
-                            @endforeach
+                            @php $slotNilai = $nilaiSantri[$k->id] ?? collect(); @endphp
+                            @for($slot = 1; $slot <= $k->maks_input; $slot++)
+                                @php $nilaiExisting = $slotNilai[$slot]->nilai ?? ''; @endphp
+                                <td class="px-1.5 py-2 text-center {{ $slot === 1 ? 'border-l' : '' }}"
+                                    style="border-color: var(--border-color);">
+                                    <input type="number"
+                                        name="nilai[{{ $santri->id }}][{{ $k->id }}][{{ $slot }}]"
+                                        value="{{ $nilaiExisting }}"
+                                        min="0" max="100" step="0.5"
+                                        placeholder="—"
+                                        oninput="hitungAkhir({{ $santri->id }})"
+                                        class="w-14 px-1.5 py-1.5 text-center text-sm rounded-lg border
+                                          border-gray-200
+                                          bg-gray-50
+                                          text-siakad-dark
+                                          placeholder-gray-300
+                                          focus:ring-2 focus:border-transparent outline-none transition
+                                          nilai-input"
+                                        data-santri="{{ $santri->id }}"
+                                        data-komponen="{{ $k->id }}"
+                                        data-bobot="{{ $k->bobot }}">
+                                </td>
+                                @endfor
+                                @endforeach
 
-                            {{-- Nilai Akhir (kalkulasi live) --}}
-                            <td class="px-3 py-3 text-center">
-                                <span id="nilai-akhir-{{ $santri->id }}"
-                                    class="text-sm font-bold {{ $nilaiAkhir ? ($nilaiAkhir->tuntas ? 'text-green-600' : 'text-red-600') : 'text-siakad-secondary' }}">
-                                    {{ $nilaiAkhir ? $nilaiAkhir->nilai_akhir : '—' }}
-                                </span>
-                            </td>
+                                {{-- Nilai Akhir (kalkulasi live) --}}
+                                <td class="px-3 py-3 text-center border-l" style="border-color: var(--border-color);">
+                                    <span id="nilai-akhir-{{ $santri->id }}"
+                                        class="text-sm font-bold {{ $nilaiAkhir ? ($nilaiAkhir->tuntas ? 'text-green-600' : 'text-red-600') : 'text-siakad-secondary' }}">
+                                        {{ $nilaiAkhir ? $nilaiAkhir->nilai_akhir : '—' }}
+                                    </span>
+                                </td>
 
-                            {{-- Status tuntas --}}
-                            <td class="px-3 py-3 text-center">
-                                <span id="status-{{ $santri->id }}">
-                                    @if($nilaiAkhir)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+                                {{-- Status tuntas --}}
+                                <td class="px-3 py-3 text-center">
+                                    <span id="status-{{ $santri->id }}">
+                                        @if($nilaiAkhir)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
                                     {{ $nilaiAkhir->tuntas
                                        ? 'bg-green-100 text-green-700'
                                        : 'bg-red-100 text-red-700' }}">
-                                        {{ $nilaiAkhir->tuntas ? 'Tuntas' : 'Belum' }}
+                                            {{ $nilaiAkhir->tuntas ? 'Tuntas' : 'Belum' }}
+                                        </span>
+                                        @else
+                                        <span class="text-gray-300 text-xs">—</span>
+                                        @endif
                                     </span>
-                                    @else
-                                    <span class="text-gray-300 text-xs">—</span>
-                                    @endif
-                                </span>
-                            </td>
+                                </td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -216,7 +234,7 @@
             }
         };
 
-        // Data bobot komponen dari server
+        // Data bobot per komponen dari server (id komponen -> bobot %)
         const bobotMap = {
             @foreach($komponen as $k) {
                 {
@@ -232,16 +250,27 @@
 
         function hitungAkhir(santriId) {
             const inputs = document.querySelectorAll(`.nilai-input[data-santri="${santriId}"]`);
+
+            // Kelompokkan nilai per komponen dulu (Cara A: rata-rata per komponen
+            // dari slot yang terisi saja, baru dikali bobot komponen tersebut)
+            const perKomponen = {};
+            inputs.forEach(input => {
+                const komponenId = input.dataset.komponen;
+                const val = parseFloat(input.value);
+                if (!isNaN(val)) {
+                    if (!perKomponen[komponenId]) perKomponen[komponenId] = [];
+                    perKomponen[komponenId].push(val);
+                }
+            });
+
             let total = 0;
             let hasValue = false;
-
-            inputs.forEach(input => {
-                const val = parseFloat(input.value);
-                const bobot = parseFloat(input.dataset.bobot);
-                if (!isNaN(val)) {
-                    total += val * (bobot / 100);
-                    hasValue = true;
-                }
+            Object.keys(perKomponen).forEach(komponenId => {
+                const nilaiList = perKomponen[komponenId];
+                const rata = nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length;
+                const bobot = parseFloat(bobotMap[komponenId] ?? 0);
+                total += rata * (bobot / 100);
+                hasValue = true;
             });
 
             const nilaiAkhirEl = document.getElementById(`nilai-akhir-${santriId}`);
@@ -252,32 +281,18 @@
                 const tuntas = rounded >= KKM;
 
                 nilaiAkhirEl.textContent = rounded;
-                nilaiAkhirEl.className = `text-sm font-bold ${tuntas
-            ? 'text-green-600'
-            : 'text-red-600'}`;
+                nilaiAkhirEl.className = `text-sm font-bold ${tuntas ? 'text-green-600' : 'text-red-600'}`;
 
                 statusEl.innerHTML = `
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
-                ${tuntas
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'}">
-                ${tuntas ? 'Tuntas' : 'Belum'}
-            </span>`;
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+                        ${tuntas ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                        ${tuntas ? 'Tuntas' : 'Belum'}
+                    </span>`;
             } else {
                 nilaiAkhirEl.textContent = '—';
                 nilaiAkhirEl.className = 'text-sm font-bold text-siakad-secondary';
                 statusEl.innerHTML = '<span class="text-gray-300 text-xs">—</span>';
             }
-        }
-
-        function isiSemua() {
-            document.querySelectorAll('.nilai-input').forEach(input => {
-                if (!input.value) {
-                    input.value = KKM;
-                    const santriId = input.dataset.santri;
-                    hitungAkhir(santriId);
-                }
-            });
         }
 
         // Hitung semua saat load (untuk nilai yang sudah ada)

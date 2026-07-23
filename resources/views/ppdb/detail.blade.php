@@ -9,7 +9,7 @@
         <a href="{{ route('admin.ppdb.pendaftar') }}"
             class="p-2 rounded-xl border border-gray-200
               text-siakad-secondary
-              hover:bg-gray-50 transition">
+              hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -96,7 +96,7 @@
             </div>
 
             @if($pendaftar->catatan_admin)
-            <div class="mb-4 p-3 rounded-xl bg-gray-50 text-sm
+            <div class="mb-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-700 text-sm
                     text-siakad-dark">
                 <p class="text-xs text-siakad-secondary mb-1">Catatan Admin</p>
                 {{ $pendaftar->catatan_admin }}

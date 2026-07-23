@@ -34,11 +34,14 @@ class MasterDataSeeder extends Seeder
             ]
         );
 
-        // ---- Tingkatan (MTs setara SMP) ----
+        // ---- Tingkatan (MTs setara SMP, + SMA/MA) ----
         $tingkatan = [
             ['nama' => 'Kelas 7', 'urutan' => 1],
             ['nama' => 'Kelas 8', 'urutan' => 2],
             ['nama' => 'Kelas 9', 'urutan' => 3],
+            ['nama' => 'Kelas 10', 'urutan' => 4],
+            ['nama' => 'Kelas 11', 'urutan' => 5],
+            ['nama' => 'Kelas 12', 'urutan' => 6],
         ];
         foreach ($tingkatan as $t) {
             \App\Models\Tingkatan::firstOrCreate(['nama' => $t['nama']], $t);
@@ -71,12 +74,15 @@ class MasterDataSeeder extends Seeder
         }
 
         // ---- Komponen Nilai ----
+        // maks_input: berapa kali komponen ini boleh diisi per santri per semester.
+        // UH & Praktik: 2x. Tugas: 4x (boleh sebagian tidak terisi, dihitung rata-rata dari yang ada).
+        // UTS/UAS: 1x (default, ujian tunggal).
         $komponen = [
-            ['nama' => 'Ulangan Harian', 'kode' => 'UH',      'bobot' => 20.00, 'urutan' => 1],
-            ['nama' => 'Tugas',          'kode' => 'TUGAS',   'bobot' => 15.00, 'urutan' => 2],
-            ['nama' => 'Praktik',        'kode' => 'PRAKTIK', 'bobot' => 15.00, 'urutan' => 3],
-            ['nama' => 'UTS',            'kode' => 'UTS',     'bobot' => 20.00, 'urutan' => 4],
-            ['nama' => 'UAS',            'kode' => 'UAS',     'bobot' => 30.00, 'urutan' => 5],
+            ['nama' => 'Ulangan Harian', 'kode' => 'UH',      'bobot' => 20.00, 'urutan' => 1, 'maks_input' => 2],
+            ['nama' => 'Tugas',          'kode' => 'TUGAS',   'bobot' => 15.00, 'urutan' => 2, 'maks_input' => 4],
+            ['nama' => 'Praktik',        'kode' => 'PRAKTIK', 'bobot' => 15.00, 'urutan' => 3, 'maks_input' => 2],
+            ['nama' => 'UTS',            'kode' => 'UTS',     'bobot' => 20.00, 'urutan' => 4, 'maks_input' => 1],
+            ['nama' => 'UAS',            'kode' => 'UAS',     'bobot' => 30.00, 'urutan' => 5, 'maks_input' => 1],
         ];
         foreach ($komponen as $k) {
             KomponenNilai::firstOrCreate(['kode' => $k['kode']], array_merge($k, ['is_active' => true]));

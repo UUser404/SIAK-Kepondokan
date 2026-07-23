@@ -16,7 +16,14 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::query();
+        // Perbaikan: "Manajemen User" ini khusus buat 6 role staff
+        // (mudir, wakil_kurikulum, guru, kesantrian, admin, sysadmin).
+        // Akun portal santri (dibuat otomatis dari PpdbController::konversiKeSantri())
+        // sengaja DIKECUALIKAN di sini -- jumlahnya bisa ribuan (1 per santri),
+        // jadi akan menenggelamkan daftar staff yang cuma segelintir kalau ikut
+        // ditampilkan. Akun portal santri dikelola dari halaman Profil Santri
+        // masing-masing (admin.santri.show), bukan dari sini.
+        $query = User::where('role', '!=', 'santri');
 
         if ($request->filled('search')) {
             $query->where(

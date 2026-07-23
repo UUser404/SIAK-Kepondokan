@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
-use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\KomponenNilai;
 use App\Models\MataPelajaran;
 use App\Models\Nilai;
 use App\Models\NilaiAkhir;
+use App\Models\PenugasanMengajar;
 use App\Models\SantriKelas;
 use App\Models\TahunAjaran;
 use App\Services\ActivityLogService;
@@ -29,13 +29,10 @@ class NilaiController extends Controller
         $user = Auth::user();
         $ta   = TahunAjaran::aktif();
 
-        $jadwalList = JadwalPelajaran::where('guru_id', $user->id)
-            ->when($ta, fn($q) => $q->whereHas('kelas', fn($k) =>
-                $k->where('tahun_ajaran_id', $ta->id)
-            ))
+        $jadwalList = PenugasanMengajar::where('guru_id', $user->id)
+            ->when($ta, fn($q) => $q->where('tahun_ajaran_id', $ta->id))
             ->with(['mataPelajaran', 'kelas.tingkatan'])
-            ->get()
-            ->unique(fn($j) => $j->kelas_id . '_' . $j->mata_pelajaran_id);
+            ->get();
 
         // Cek progress input nilai per kelas-mapel
         $jadwalList = $jadwalList->map(function ($jadwal) use ($ta) {
@@ -69,8 +66,8 @@ class NilaiController extends Controller
         $user = Auth::user();
         $ta   = TahunAjaran::aktif();
 
-        // Pastikan guru ini mengajar kelas-mapel ini
-        $jadwal = JadwalPelajaran::where('guru_id', $user->id)
+        // Pastikan guru ini mengajar kelas-mapel ini (berdasarkan Penugasan Mengajar dari Kurikulum)
+        $penugasan = PenugasanMengajar::where('guru_id', $user->id)
             ->where('kelas_id', $kelas->id)
             ->where('mata_pelajaran_id', $mataPelajaran->id)
             ->firstOrFail();
@@ -84,13 +81,16 @@ class NilaiController extends Controller
             ->get()
             ->sortBy('santri.nama_lengkap');
 
-        // Ambil nilai yang sudah ada
+        // Ambil nilai yang sudah ada, dikelompokkan per santri -> per komponen -> per slot
+        // (sebelumnya keyBy('komponen_nilai_id') yang cuma nyimpen 1 baris terakhir per komponen;
+        // sekarang komponen seperti Tugas boleh py beberapa slot/input sekaligus)
         $nilaiMap = Nilai::where('kelas_id', $kelas->id)
             ->where('mata_pelajaran_id', $mataPelajaran->id)
             ->when($ta, fn($q) => $q->where('tahun_ajaran_id', $ta->id))
             ->get()
             ->groupBy('santri_id')
-            ->map(fn($rows) => $rows->keyBy('komponen_nilai_id'));
+            ->map(fn($rows) => $rows->groupBy('komponen_nilai_id')
+                ->map(fn($byKomponen) => $byKomponen->keyBy('slot')));
 
         // Nilai akhir yang sudah dikalkulasi
         $nilaiAkhirMap = NilaiAkhir::where('kelas_id', $kelas->id)
@@ -100,8 +100,13 @@ class NilaiController extends Controller
             ->keyBy('santri_id');
 
         return view('nilai.show', compact(
-            'kelas', 'mataPelajaran', 'komponen',
-            'santriList', 'nilaiMap', 'nilaiAkhirMap', 'ta'
+            'kelas',
+            'mataPelajaran',
+            'komponen',
+            'santriList',
+            'nilaiMap',
+            'nilaiAkhirMap',
+            'ta'
         ));
     }
 
@@ -115,9 +120,13 @@ class NilaiController extends Controller
             'kelas_id'           => ['required', 'exists:kelas,id'],
             'mata_pelajaran_id'  => ['required', 'exists:mata_pelajaran,id'],
             'komponen_nilai_id'  => ['required', 'exists:komponen_nilai,id'],
+            'slot'               => ['nullable', 'integer', 'min:1'],
             'tahun_ajaran_id'    => ['required', 'exists:tahun_ajaran,id'],
             'nilai'              => ['required', 'numeric', 'min:0', 'max:100'],
         ]);
+
+        $komponen = KomponenNilai::findOrFail($request->komponen_nilai_id);
+        $slot = min((int) ($request->slot ?? 1), $komponen->maks_input);
 
         $nilai = Nilai::updateOrCreate(
             [
@@ -125,6 +134,7 @@ class NilaiController extends Controller
                 'kelas_id'          => $request->kelas_id,
                 'mata_pelajaran_id' => $request->mata_pelajaran_id,
                 'komponen_nilai_id' => $request->komponen_nilai_id,
+                'slot'              => $slot,
                 'tahun_ajaran_id'   => $request->tahun_ajaran_id,
             ],
             [
@@ -150,35 +160,44 @@ class NilaiController extends Controller
             'mata_pelajaran_id' => ['required', 'exists:mata_pelajaran,id'],
             'tahun_ajaran_id'   => ['required', 'exists:tahun_ajaran,id'],
             'nilai'             => ['required', 'array'],
-            'nilai.*.*'         => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'nilai.*.*.*'       => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
-        // Pastikan guru mengajar kelas-mapel ini
-        $jadwal = JadwalPelajaran::where('guru_id', Auth::id())
+        // Pastikan guru mengajar kelas-mapel ini (berdasarkan Penugasan Mengajar dari Kurikulum)
+        $penugasan = PenugasanMengajar::where('guru_id', Auth::id())
             ->where('kelas_id', $request->kelas_id)
             ->where('mata_pelajaran_id', $request->mata_pelajaran_id)
             ->firstOrFail();
 
-        $saved = DB::transaction(function () use ($request) {
+        // Ambil batas maks_input per komponen, buat validasi slot tidak melebihi batas
+        $maksInputMap = KomponenNilai::pluck('maks_input', 'id');
+
+        $saved = DB::transaction(function () use ($request, $maksInputMap) {
             $count = 0;
             foreach ($request->nilai as $santriId => $komponenNilai) {
-                foreach ($komponenNilai as $komponenId => $nilaiValue) {
-                    if ($nilaiValue === null || $nilaiValue === '') continue;
+                foreach ($komponenNilai as $komponenId => $slotValues) {
+                    $maksInput = $maksInputMap[$komponenId] ?? 1;
 
-                    Nilai::updateOrCreate(
-                        [
-                            'santri_id'         => $santriId,
-                            'kelas_id'          => $request->kelas_id,
-                            'mata_pelajaran_id' => $request->mata_pelajaran_id,
-                            'komponen_nilai_id' => $komponenId,
-                            'tahun_ajaran_id'   => $request->tahun_ajaran_id,
-                        ],
-                        [
-                            'nilai'        => $nilaiValue,
-                            'diinput_oleh' => Auth::id(),
-                        ]
-                    );
-                    $count++;
+                    foreach ($slotValues as $slot => $nilaiValue) {
+                        if ($nilaiValue === null || $nilaiValue === '') continue;
+                        if ($slot < 1 || $slot > $maksInput) continue; // abaikan slot di luar batas komponen
+
+                        Nilai::updateOrCreate(
+                            [
+                                'santri_id'         => $santriId,
+                                'kelas_id'          => $request->kelas_id,
+                                'mata_pelajaran_id' => $request->mata_pelajaran_id,
+                                'komponen_nilai_id' => $komponenId,
+                                'slot'              => $slot,
+                                'tahun_ajaran_id'   => $request->tahun_ajaran_id,
+                            ],
+                            [
+                                'nilai'        => $nilaiValue,
+                                'diinput_oleh' => Auth::id(),
+                            ]
+                        );
+                        $count++;
+                    }
                 }
             }
             return $count;

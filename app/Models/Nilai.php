@@ -18,6 +18,7 @@ class Nilai extends Model
         'kelas_id',
         'mata_pelajaran_id',
         'komponen_nilai_id',
+        'slot',
         'tahun_ajaran_id',
         'nilai',
         'catatan',

@@ -44,7 +44,9 @@ class JadwalController extends Controller
         $mataPelajaran = MataPelajaran::orderBy('nama')->get();
 
         // Tetap menggunakan TenagaPendidik aktif sesuai database lamamu
-        $guruList  = TenagaPendidik::where('status', 'aktif')->orderBy('nama')->get();
+        // Catatan: kolom 'nama' tidak ada di tabel tenaga_pendidik, nama guru ada di relasi user()
+        $guruList  = TenagaPendidik::with('user')->where('status', 'aktif')->get()
+            ->sortBy(fn($g) => $g->user?->name);
 
         return view('jadwal.create', compact('kelasList', 'mataPelajaran', 'guruList'));
     }
@@ -54,7 +56,7 @@ class JadwalController extends Controller
         $validated = $request->validate([
             'kelas_id'          => ['required', 'exists:kelas,id'],
             'mata_pelajaran_id' => ['required', 'exists:mata_pelajaran,id'],
-            'guru_id'           => ['required', 'exists:tenaga_pendidik,id'], // Validasi ke tabel tenaga_pendidik
+            'guru_id'           => ['required', 'exists:users,id'], // FK jadwal_pelajaran.guru_id -> users.id (bukan tenaga_pendidik.id)
             'hari'              => ['required', Rule::in(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'])], // Menjaga format Huruf Kapital lamamu
             'jam_mulai'         => ['required', 'date_format:H:i'],
             'jam_selesai'       => ['required', 'date_format:H:i', 'after:jam_mulai'],
@@ -91,7 +93,8 @@ class JadwalController extends Controller
         $ta        = TahunAjaran::aktif();
         $kelasList = Kelas::where('tahun_ajaran_id', $ta?->id)->orderBy('nama')->get();
         $mataPelajaran = MataPelajaran::orderBy('nama')->get();
-        $guruList  = TenagaPendidik::where('status', 'aktif')->orderBy('nama')->get();
+        $guruList  = TenagaPendidik::with('user')->where('status', 'aktif')->get()
+            ->sortBy(fn($g) => $g->user?->name);
 
         return view('jadwal.edit', compact('jadwal', 'kelasList', 'mataPelajaran', 'guruList'));
     }
@@ -101,7 +104,7 @@ class JadwalController extends Controller
         $validated = $request->validate([
             'kelas_id'          => ['required', 'exists:kelas,id'],
             'mata_pelajaran_id' => ['required', 'exists:mata_pelajaran,id'],
-            'guru_id'           => ['required', 'exists:tenaga_pendidik,id'],
+            'guru_id'           => ['required', 'exists:users,id'], // FK jadwal_pelajaran.guru_id -> users.id (bukan tenaga_pendidik.id)
             'hari'              => ['required', Rule::in(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'])],
             'jam_mulai'         => ['required', 'date_format:H:i'],
             'jam_selesai'       => ['required', 'date_format:H:i', 'after:jam_mulai'],

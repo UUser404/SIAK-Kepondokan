@@ -16,7 +16,7 @@
         <a href="{{ route('kesantrian.rekap.presensi') }}"
             class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border
               border-gray-200 text-siakad-secondary
-              hover:bg-gray-50 transition">
+              hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             Rekap Bulanan →
         </a>
     </div>

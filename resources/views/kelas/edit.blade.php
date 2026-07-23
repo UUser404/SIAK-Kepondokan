@@ -15,6 +15,6 @@
 
     <form method="POST" action="{{ route('kurikulum.kelas.update', $kelas) }}" class="max-w-xl">
         @csrf @method('PUT')
-        @include('kurikulum.kelas._form', ['submitLabel' => 'Perbarui'])
+        @include('kelas._form', ['submitLabel' => 'Perbarui'])
     </form>
 </x-app-layout>

@@ -68,8 +68,8 @@
                            text-siakad-dark dark:text-white focus:ring-2 outline-none transition">
                 <option value="">-- Pilih Guru --</option>
                 @foreach($guruList as $g)
-                <option value="{{ $g->id }}"
-                    @selected(old('guru_id', $jadwal?->guru_id) == $g->id)>{{ $g->nama }}</option>
+                <option value="{{ $g->user_id }}"
+                    @selected(old('guru_id', $jadwal?->guru_id) == $g->user_id)>{{ $g->user->name }}</option>
                 @endforeach
             </select>
             @error('guru_id')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror

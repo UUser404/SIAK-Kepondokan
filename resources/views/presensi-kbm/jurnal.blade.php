@@ -104,7 +104,7 @@
             <table class="w-full text-sm table-saas">
                 <thead style="background-color: rgba(35,76,106,0.04);">
                     <tr>
-                        @foreach(['Tanggal','Mapel / Kelas','Topik','H','S','I','A',''] as $h)
+                        @foreach(['Tanggal','Mapel / Kelas','Topik','H','S','I','A','Aksi'] as $h)
                         <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide
                                text-siakad-secondary">{{ $h }}</th>
                         @endforeach
@@ -138,17 +138,33 @@
                             {{ $p->presensiKbm->where('status', $s)->count() }}
                         </td>
                         @endforeach
-                        <td class="px-5 py-3 text-right">
-                            <a href="{{ route('guru.presensi.show', $p) }}"
-                                class="text-xs font-medium transition-colors"
-                                style="color: var(--siakad-primary);">
-                                Detail
-                            </a>
+                        <td class="px-5 py-3">
+                            <div class="flex items-center gap-2 justify-end">
+                                <a href="{{ route('guru.presensi.show', $p) }}"
+                                    class="px-2.5 py-1 text-xs font-medium rounded-lg transition-colors
+                                           border border-gray-200 text-siakad-dark hover:bg-gray-100">
+                                    Lihat
+                                </a>
+                                <a href="{{ route('guru.presensi.edit', $p) }}"
+                                    class="px-2.5 py-1 text-xs font-medium rounded-lg transition-colors
+                                           border border-blue-200 text-blue-600 hover:bg-blue-50">
+                                    Edit
+                                </a>
+                                <button type="button" onclick="confirmDelete('{{ $p->id }}', '{{ $p->mataPelajaran->nama }}', '{{ $p->kelas->nama }}')"
+                                    class="px-2.5 py-1 text-xs font-medium rounded-lg transition-colors
+                                           border border-red-200 text-red-600 hover:bg-red-50">
+                                    Hapus
+                                </button>
+                                <form id="delete-form-{{ $p->id }}" action="{{ route('guru.presensi.destroy', $p) }}" method="POST" style="display: none;">
+                                    @method('DELETE')
+                                    @csrf
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-5 py-12 text-center text-sm
+                        <td colspan="9" class="px-5 py-12 text-center text-sm
                                            text-siakad-secondary">
                             Belum ada pertemuan bulan ini
                         </td>
@@ -158,4 +174,14 @@
             </table>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        function confirmDelete(pertemuanId, mataPelajaran, kelas) {
+            if (confirm(`⚠️ Hapus pertemuan "${mataPelajaran}" (${kelas})?\n\nTindakan ini tidak dapat dibatalkan.`)) {
+                document.getElementById(`delete-form-${pertemuanId}`).submit();
+            }
+        }
+    </script>
+    @endpush
 </x-app-layout>

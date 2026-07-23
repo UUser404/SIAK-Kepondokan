@@ -25,7 +25,7 @@ class PendidikController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nip', 'like', "%{$search}%")
-                  ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$search}%"));
             });
         }
 
@@ -94,7 +94,7 @@ class PendidikController extends Controller
     {
         $oldValues = $pendidik->toArray();
 
-        DB::transaction(function () use ($request, $pendidik) {
+        DB::transaction(function () use ($request, $pendidik, $oldValues) {
             if ($request->hasFile('foto')) {
                 if ($pendidik->foto) Storage::disk('public')->delete($pendidik->foto);
                 $pendidik->foto = $request->file('foto')->store('pendidik/foto', 'public');

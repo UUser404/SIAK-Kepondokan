@@ -45,6 +45,13 @@ return [
         'status_kbm'      => ['hadir', 'sakit', 'izin', 'alpa'],
         'status_kegiatan' => ['hadir', 'sakit', 'izin', 'alpa'],
         'min_kehadiran'   => 75, // Persen minimum kehadiran
+        'jam_mulai'       => [
+            '07:00' => '07:00 (Jam 1)',
+            '08:20' => '08:20 (Jam 2)',
+            '10:10' => '10:10 (Jam 3)',
+            '13:00' => '13:00 (Jam 4)',
+        ],
+        'durasi_jam' => '01:20', // Format HH:MM (default 1 jam 20 menit)
     ],
 
     /*
@@ -56,6 +63,20 @@ return [
         'batas_poin_panggilan_wali' => 50,
         'batas_poin_skors'         => 75,
         'batas_poin_dikeluarkan'   => 100,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ekstrakurikuler
+    |--------------------------------------------------------------------------
+    */
+    'ekstrakurikuler' => [
+        'predikat' => [
+            ['min' => 85, 'label' => 'Sangat Baik'],
+            ['min' => 70, 'label' => 'Baik'],
+            ['min' => 55, 'label' => 'Cukup'],
+            ['min' => 0,  'label' => 'Kurang'],
+        ],
     ],
 
     /*

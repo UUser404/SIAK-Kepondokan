@@ -201,15 +201,49 @@ class PenilaianService
     }
 
     /**
-     * Konversi nilai angka ke predikat huruf
+     * Konversi nilai angka ke predikat huruf (A-E), sesuai ambang batas
+     * di config('siak.penilaian.predikat') -- supaya bisa diubah tanpa
+     * sentuh kode kalau ambangnya perlu direvisi.
      */
     public function getPredikat(float $nilai): string
     {
-        if ($nilai >= 90) return 'A';
-        if ($nilai >= 80) return 'B';
-        if ($nilai >= 70) return 'C';
-        if ($nilai >= 60) return 'D';
+        $tabel = config('siak.penilaian.predikat', []);
+
+        foreach ($tabel as $tingkat) {
+            if ($nilai >= $tingkat['min']) {
+                return $tingkat['label'];
+            }
+        }
+
         return 'E';
+    }
+
+    /**
+     * Konversi persentase kehadiran ke predikat huruf (A-E).
+     * Sengaja memakai tabel ambang batas yang SAMA PERSIS dengan nilai
+     * akademik (config('siak.penilaian.predikat')) -- dipakai untuk
+     * auto-hitung Kedisiplinan wali kelas dari data presensi.
+     */
+    public function getPredikatKehadiran(float $persentase): string
+    {
+        return $this->getPredikat($persentase);
+    }
+
+    /**
+     * Konversi nilai ekstrakurikuler (0-100) ke predikat kualitatif
+     * (Sangat Baik/Baik/Cukup/Kurang), sesuai config('siak.ekstrakurikuler.predikat').
+     */
+    public function getPredikatEkstrakurikuler(float $nilai): string
+    {
+        $tabel = config('siak.ekstrakurikuler.predikat', []);
+
+        foreach ($tabel as $tingkat) {
+            if ($nilai >= $tingkat['min']) {
+                return $tingkat['label'];
+            }
+        }
+
+        return 'Kurang';
     }
 
     /**
@@ -241,6 +275,45 @@ class PenilaianService
             'total'   => $total,
             'hadir'   => $hadir,
             'persen'  => $total > 0 ? round(($hadir / $total) * 100, 1) : 0,
+        ];
+    }
+
+    /**
+     * Hitung kehadiran GABUNGAN semua mata pelajaran untuk satu santri di satu
+     * kelas & tahun ajaran (bukan per-mapel seperti getPersentaseKehadiran()).
+     * Dipakai untuk:
+     *  - Auto-hitung predikat Kedisiplinan (Wali Kelas)
+     *  - Data "Kehadiran" gabungan di rapor (hadir/sakit/izin/alpa total)
+     */
+    public function getPersentaseKehadiranTotal(
+        Santri $santri,
+        Kelas $kelas,
+        TahunAjaran $tahunAjaran
+    ): array {
+        $pertemuanIds = \App\Models\Pertemuan::where('kelas_id', $kelas->id)
+            ->whereBetween('tanggal', [
+                $tahunAjaran->tanggal_mulai,
+                $tahunAjaran->tanggal_selesai,
+            ])
+            ->pluck('id');
+
+        $presensi = \App\Models\PresensiKbm::whereIn('pertemuan_id', $pertemuanIds)
+            ->where('santri_id', $santri->id)
+            ->get();
+
+        $total = $presensi->count();
+        $hadir = $presensi->where('status', 'hadir')->count();
+        $sakit = $presensi->where('status', 'sakit')->count();
+        $izin  = $presensi->where('status', 'izin')->count();
+        $alpa  = $presensi->where('status', 'alpa')->count();
+
+        return [
+            'total'  => $total,
+            'hadir'  => $hadir,
+            'sakit'  => $sakit,
+            'izin'   => $izin,
+            'alpa'   => $alpa,
+            'persen' => $total > 0 ? round(($hadir / $total) * 100, 1) : 0,
         ];
     }
 }

@@ -78,6 +78,22 @@
             @error('nama')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
         </div>
 
+        <div>
+            <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
+                Maksimal Input per Semester <span class="text-red-500">*</span>
+            </label>
+            <input type="number" name="maks_input" min="1" max="20"
+                value="{{ old('maks_input', $komponenNilai?->maks_input ?? 1) }}" required
+                class="w-full px-3.5 py-2.5 text-sm rounded-xl border
+                          border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
+                          text-siakad-dark dark:text-white focus:ring-2 outline-none transition">
+            <p class="text-xs text-siakad-secondary dark:text-gray-400 mt-1.5">
+                Berapa kali komponen ini boleh diisi per santri per semester (e.g. Tugas = 4, UH/Praktik = 2, UTS/UAS = 1).
+                Guru boleh mengisi sebagian saja — nilai akhir dihitung dari rata-rata yang terisi.
+            </p>
+            @error('maks_input')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
+        </div>
+
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">

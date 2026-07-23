@@ -143,6 +143,16 @@ class RolesPermissionsSeeder extends Seeder
         $sysadmin = Role::firstOrCreate(['name' => 'sysadmin']);
         $sysadmin->syncPermissions(Permission::all());
 
+        // 7. Santri — akun portal santri (FONDASI untuk pengembangan mendatang).
+        //    Sengaja permission KOSONG dulu: belum ada dashboard/route apapun yang
+        //    dikhususkan untuk role ini. Diisi nanti begitu portal santri (lihat
+        //    fitur/lihat nilai/lihat rapor sendiri, dst) benar-benar dibangun.
+        //    Didaftarkan resmi di sini supaya konsisten dengan pola dual-RBAC yang
+        //    dipakai semua role lain (users.role string + Spatie role) -- lihat
+        //    Admin\PpdbController::konversiKeSantri() tempat akun ini dibuat.
+        $santri = Role::firstOrCreate(['name' => 'santri']);
+        $santri->syncPermissions([]);
+
         $this->command->info('✅ Roles & permissions seeded.');
     }
 }

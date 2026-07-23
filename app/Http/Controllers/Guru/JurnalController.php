@@ -5,7 +5,6 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
-use App\Models\JadwalPelajaran;
 use App\Models\Pertemuan;
 use App\Models\PresensiKbm;
 use App\Models\TahunAjaran;

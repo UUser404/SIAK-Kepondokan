@@ -82,7 +82,7 @@
                 <button type="submit"
                     class="px-4 py-3 text-sm font-medium rounded-xl border border-gray-200
                            text-gray-600
-                           hover:bg-gray-50 transition">
+                           hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                     Cek
                 </button>
             </div>

@@ -64,7 +64,7 @@
                     <p class="text-xs text-siakad-secondary dark:text-gray-400">
                         {{ ucfirst($j->hari) }} ·
                         {{ \Carbon\Carbon::parse($j->jam_mulai)->format('H:i') }}–{{ \Carbon\Carbon::parse($j->jam_selesai)->format('H:i') }}
-                        · {{ $j->guru->nama }} {{-- Diubah ke $j->guru->nama jika relasi TenagaPendidik menggunakan nama --}}
+                        · {{ $j->guru->name }} {{-- $j->guru() -> belongsTo(User::class), field-nya 'name' --}}
                     </p>
                 </div>
                 @empty

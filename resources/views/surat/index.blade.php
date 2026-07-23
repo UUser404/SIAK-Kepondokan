@@ -16,7 +16,7 @@
                 class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium
                   border border-gray-200
                   text-siakad-secondary
-                  hover:bg-gray-50 transition">
+                  hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                 Template
             </a>
             <a href="{{ route('admin.surat.create') }}"

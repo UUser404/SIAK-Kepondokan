@@ -8,7 +8,7 @@
         <a href="{{ route('admin.santri.index') }}"
             class="p-2 rounded-xl border border-gray-200
               text-siakad-secondary
-              hover:bg-gray-50 transition">
+              hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -18,6 +18,29 @@
             <p class="text-sm text-siakad-secondary mt-0.5">NIS: {{ $santri->nis }}</p>
         </div>
     </div>
+
+    {{-- Banner password sekali-tampil (setelah konversi PPDB / reset password akun) --}}
+    @if(session('new_password'))
+    <div class="mb-6 p-4 rounded-xl border" style="background: #fffbeb; border-color: #fde68a;">
+        <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" style="color: #d97706;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div class="flex-1">
+                <p class="text-sm font-semibold" style="color: #92400e;">
+                    Password Akun Portal (catat sekarang, tidak akan ditampilkan lagi)
+                </p>
+                <p class="text-xs mt-1" style="color: #92400e;">
+                    Sampaikan ke santri/wali secara langsung/pribadi. Halaman ini tidak menyimpan password dalam bentuk asli.
+                </p>
+                <div class="mt-2 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border" style="border-color: #fde68a;">
+                    <code class="text-sm font-mono font-bold" style="color: #92400e;">{{ session('new_password') }}</code>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <div class="space-y-5 max-w-4xl">
 
@@ -110,6 +133,64 @@
                     @endforeach
                 </dl>
             </div>
+        </div>
+
+        {{-- Akun Portal Santri --}}
+        @php
+            $akunUser = $santri->user_id ? \App\Models\User::find($santri->user_id) : null;
+        @endphp
+        <div class="card-saas p-5">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-1 h-4 rounded-full" style="background-color: var(--siakad-primary);"></div>
+                    <h3 class="font-semibold text-sm text-siakad-dark">Akun Portal Santri</h3>
+                </div>
+                @if($akunUser)
+                <span class="inline-flex items-center gap-1.5 text-xs font-medium
+                             {{ $akunUser->is_active ? 'text-green-600' : 'text-gray-400' }}">
+                    <span class="w-1.5 h-1.5 rounded-full {{ $akunUser->is_active ? 'bg-green-500' : 'bg-gray-400' }}"></span>
+                    {{ $akunUser->is_active ? 'Aktif' : 'Nonaktif' }}
+                </span>
+                @endif
+            </div>
+
+            @if($akunUser)
+            <div class="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                    <p class="text-sm text-siakad-dark font-medium">{{ $akunUser->email }}</p>
+                    <p class="text-xs text-siakad-secondary mt-0.5">
+                        {{ $akunUser->is_active
+                            ? 'Santri/wali sudah bisa login memakai akun ini.'
+                            : 'Akun belum aktif — aktifkan setelah kredensial disampaikan dengan aman.' }}
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <form method="POST" action="{{ route('admin.santri.akun.toggle', $santri) }}">
+                        @csrf
+                        <button type="submit"
+                            class="px-3 py-2 text-xs font-semibold rounded-xl border transition
+                                  {{ $akunUser->is_active
+                                     ? 'border-red-200 text-red-600 hover:bg-red-50'
+                                     : 'border-green-200 text-green-600 hover:bg-green-50' }}">
+                            {{ $akunUser->is_active ? 'Nonaktifkan Akun' : 'Aktifkan Akun' }}
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.santri.akun.reset-password', $santri) }}"
+                        onsubmit="return confirm('Reset password akun {{ addslashes($santri->nama_lengkap) }}? Password baru akan digenerate acak.')">
+                        @csrf
+                        <button type="submit"
+                            class="px-3 py-2 text-xs font-semibold rounded-xl border border-gray-200
+                                  text-siakad-dark hover:bg-gray-50 transition">
+                            Reset Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+            @else
+            <p class="text-sm text-siakad-secondary">
+                Santri ini belum punya akun portal (biasanya dibuat otomatis saat konversi dari PPDB).
+            </p>
+            @endif
         </div>
 
         {{-- Asrama --}}
