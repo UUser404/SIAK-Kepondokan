@@ -251,3 +251,12 @@ Route::prefix('ppdb')->name('ppdb.public.')->group(function () {
     Route::post('daftar', [\App\Http\Controllers\Public\PpdbPublicController::class, 'store'])->name('store');
     Route::get('cek/{nomor_daftar}', [\App\Http\Controllers\Public\PpdbPublicController::class, 'cekStatus'])->name('cek');
 });
+
+// Rute Khusus Halaman Login SIMAQ
+Route::middleware('guest')->get('/simaq/login', function () {
+    // Trik Cerdas: Beritahu sistem bahwa setelah login sukses, 
+    // user HARUS diarahkan ke Dashboard SIMAQ, bukan Dashboard SIAK.
+    session(['url.intended' => route('simaq.dashboard')]);
+    
+    return view('simaq.login');
+})->name('simaq.login');
