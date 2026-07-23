@@ -166,8 +166,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // ==========================================
-    // PPDB PUBLIK (tanpa auth, untuk calon santri)
+    // SIMAQ - Sistem Penilaian Al-Quran
     // ==========================================
+    require __DIR__ . '/simaq.php';
 });
 
 // PPDB Form Publik (tanpa auth)

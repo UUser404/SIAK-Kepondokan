@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
+use App\Models\SimaqPenilaian;
+use App\Observers\SimaqPenilaianObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,5 +32,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(function ($user, $ability) {
             return $user->hasRole('sysadmin') ? true : null;
         });
+
+        // 3. REGISTER SIMAQ OBSERVERS
+        SimaqPenilaian::observe(SimaqPenilaianObserver::class);
     }
 }

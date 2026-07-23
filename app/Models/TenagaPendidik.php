@@ -27,6 +27,8 @@ class TenagaPendidik extends Model
         'status_kepegawaian',
         'tanggal_masuk',
         'foto',
+        'kategori_guru',
+        'is_simaq_active',
     ];
 
     protected function casts(): array
@@ -34,6 +36,7 @@ class TenagaPendidik extends Model
         return [
             'tanggal_lahir'  => 'date',
             'tanggal_masuk'  => 'date',
+            'is_simaq_active' => 'boolean',
         ];
     }
 
@@ -50,5 +53,22 @@ class TenagaPendidik extends Model
     public function pertemuan()
     {
         return $this->hasMany(Pertemuan::class, 'guru_id', 'user_id');
+    }
+
+    public function simaqPenilaians()
+    {
+        return $this->hasMany(SimaqPenilaian::class, 'guru_id', 'id');
+    }
+
+    // ---- Scopes ----
+
+    public function scopeSimaqActive($query)
+    {
+        return $query->where('is_simaq_active', true);
+    }
+
+    public function scopeKategoriSimaq($query)
+    {
+        return $query->whereIn('kategori_guru', ['tahsin', 'tahfizh']);
     }
 }
