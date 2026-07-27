@@ -52,10 +52,21 @@ class NilaiEkstrakurikulerController extends Controller
             'nilai.*.*' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
+        // Sama seperti PredikatSikapController -- santri_id di sini harus dipastikan
+        // benar murid di $kelas ini, karena authorize_() cuma mengecek kepemilikan
+        // $kelas, bukan keanggotaan tiap santri_id yang dikirim di body request.
+        $validSantriIds = $kelas->santri()->pluck('santri.id')->all();
+        $validEkskulIds = Ekstrakurikuler::where('is_active', true)->pluck('id')->all();
+
         $count = 0;
         foreach ($request->nilai as $santriId => $perEkskul) {
+            if (!in_array((int) $santriId, $validSantriIds, true)) {
+                continue;
+            }
+
             foreach ($perEkskul as $ekskulId => $nilaiValue) {
                 if ($nilaiValue === null || $nilaiValue === '') continue;
+                if (!in_array((int) $ekskulId, $validEkskulIds, true)) continue;
 
                 NilaiEkstrakurikuler::updateOrCreate(
                     [

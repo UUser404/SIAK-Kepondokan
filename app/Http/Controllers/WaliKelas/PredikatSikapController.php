@@ -101,7 +101,18 @@ class PredikatSikapController extends Controller
             'predikat.*.catatan'          => ['nullable', 'string', 'max:500'],
         ]);
 
+        // Penting: request->predikat berupa array ber-key santri_id. Tanpa cross-check
+        // ini, wali kelas kelas A bisa saja mengirim santri_id milik kelas B lewat
+        // request yang dimanipulasi manual (bukan lewat form), dan tetap lolos karena
+        // authorize_() di atas cuma mengecek kepemilikan $kelas, bukan keanggotaan
+        // tiap santri_id di dalamnya.
+        $validSantriIds = $kelas->santri()->pluck('santri.id')->all();
+
         foreach ($request->predikat as $santriId => $data) {
+            if (!in_array((int) $santriId, $validSantriIds, true)) {
+                continue;
+            }
+
             PredikatSikap::updateOrCreate(
                 ['santri_id' => $santriId, 'tahun_ajaran_id' => $ta->id],
                 [
