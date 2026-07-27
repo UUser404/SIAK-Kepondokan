@@ -175,13 +175,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
 
         // Data Santri
-        Route::resource('santri', \App\Http\Controllers\Admin\SantriController::class);
+        // PENTING: route literal (export, import-*, {santri}/profil) HARUS didaftarkan
+        // SEBELUM Route::resource() -- resource bikin GET santri/{santri} (wildcard
+        // 1-segmen) yang kalau didaftarkan duluan akan "menangkap" request ke
+        // santri/export, santri/import-bulk, dst (dianggap {santri}="export" dst),
+        // gagal ketemu model, jadi 404. Ini pernah jadi bug nyata -- jangan diubah
+        // urutannya lagi tanpa alasan kuat.
         Route::get('santri/export', [\App\Http\Controllers\Admin\SantriController::class, 'export'])->name('santri.export');
         Route::get('santri/import-template', [\App\Http\Controllers\Admin\SantriController::class, 'importTemplate'])->name('santri.import-template');
         Route::get('santri/import-bulk', [\App\Http\Controllers\Admin\SantriController::class, 'importBulk'])->name('santri.import-bulk');
         Route::post('santri/import-bulk/preview', [\App\Http\Controllers\Admin\SantriController::class, 'previewBulk'])->name('santri.import-bulk.preview');
         Route::post('santri/import-bulk/store', [\App\Http\Controllers\Admin\SantriController::class, 'storeBulk'])->name('santri.import-bulk.store');
         Route::get('santri/{santri}/profil', [\App\Http\Controllers\Admin\SantriController::class, 'profil'])->name('santri.profil');
+        Route::resource('santri', \App\Http\Controllers\Admin\SantriController::class);
 
         // Tenaga Pendidik
         Route::resource('pendidik', \App\Http\Controllers\Admin\PendidikController::class);
