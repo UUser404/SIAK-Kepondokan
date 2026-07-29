@@ -60,6 +60,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // "Missing required parameter [mapel]" saat diklik dari halaman index. Diperbaiki jadi path polos.
         Route::get('nilai/detail', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'show'])->name('nilai.show');
         Route::post('nilai/finalize', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'finalize'])->name('nilai.finalize');
+        Route::post('nilai/finalize-kelas', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'finalizeKelas'])->name('nilai.finalize-kelas');
+        Route::post('nilai/finalize-semua', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'finalizeAll'])->name('nilai.finalize-all');
         // FR-14: export nilai & presensi ke Excel (kelas_id & mapel_id dikirim sebagai query string)
         Route::get('nilai/export', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'exportNilai'])->name('nilai.export');
         Route::get('presensi/export', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'exportPresensi'])->name('presensi.export');
