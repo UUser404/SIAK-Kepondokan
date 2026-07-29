@@ -13,7 +13,7 @@
         <h2 class="text-xl font-semibold text-siakad-dark dark:text-white">Edit — {{ $kelas->nama }}</h2>
     </div>
 
-    <form method="POST" action="{{ route('kurikulum.kelas.update', $kelas) }}" class="max-w-xl">
+    <form method="POST" action="{{ route('kurikulum.kelas.update', $kelas->id) }}" class="max-w-xl">
         @csrf @method('PUT')
         @include('kelas._form', ['submitLabel' => 'Perbarui'])
     </form>

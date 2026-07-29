@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             RolesPermissionsSeeder::class,
             MasterDataSeeder::class,
             UsersSeeder::class,
+            SimaqRoleSeeder::class,
         ]);
     }
 }
