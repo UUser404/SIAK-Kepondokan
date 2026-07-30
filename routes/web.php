@@ -260,3 +260,14 @@ Route::middleware('guest')->get('/simaq/login', function () {
     
     return view('simaq.login');
 })->name('simaq.login');
+
+use App\Http\Controllers\SimaqController;
+
+// PERHATIKAN BARIS INI: middleware-nya sekarang mencari 'guru_tahsin_tahfizh'
+// RUTE KHUSUS SIMAQ (Guru Tahsin-Tahfizh)
+// PERHATIKAN BARIS INI: middleware-nya sekarang mencari 'guru_tahsin_tahfizh'
+// RUTE KHUSUS SIMAQ (Guru Tahsin-Tahfizh)
+Route::middleware(['auth', 'role:guru_tahsin_tahfizh|admin|super_admin'])->prefix('simaq')->name('simaq.')->group(function () {
+    // ... hapus semua isinya sampai ...
+    Route::delete('/nilai/{id}', [App\Http\Controllers\SimaqController::class, 'destroy'])->name('destroy');
+});

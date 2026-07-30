@@ -25,8 +25,7 @@ class PendidikRequest extends FormRequest
             'name'     => ['required', 'string', 'max:100'],
             'email'    => ['required', 'email', 'max:100',
                            Rule::unique('users', 'email')->ignore($userId)],
-            'role'     => ['required', Rule::in(['guru', 'wakil_kurikulum', 'kesantrian', 'admin', 'mudir'])],
-            'password' => [$isUpdate ? 'nullable' : 'required', 'string', 'min:8'],
+            'role' => 'required|string|in:guru,guru_tahsin_tahfizh,wakil_kurikulum,bagian_kesantrian,staf_admin,mudir',                 'password' => [$isUpdate ? 'nullable' : 'required', 'string', 'min:8'],
 
             // Data pendidik
             'nip'                 => ['nullable', 'string', 'max:20',

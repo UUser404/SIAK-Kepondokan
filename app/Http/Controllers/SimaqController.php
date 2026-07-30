@@ -4,191 +4,165 @@ namespace App\Http\Controllers;
 
 use App\Models\SimaqPenilaian;
 use App\Models\Santri;
-use App\Models\Kelas;
 use App\Services\SimaqScoringService;
-use App\Actions\SubmitSimaqPenilaianAction;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 
 class SimaqController extends Controller
 {
     protected SimaqScoringService $scoringService;
-    protected SubmitSimaqPenilaianAction $submitAction;
 
-    public function __construct(
-        SimaqScoringService $scoringService,
-        SubmitSimaqPenilaianAction $submitAction
-    ) {
+    public function __construct(SimaqScoringService $scoringService) 
+    {
         $this->scoringService = $scoringService;
-        $this->submitAction = $submitAction;
     }
 
     /**
-     * Dashboard SIMAQ - overview & statistik
+     * Dashboard SIMAQ
+     */
+    /**
+     * Dashboard SIMAQ - Overview, Grafik & Leaderboard
      */
     public function dashboard()
     {
         $user = auth()->user();
+        $guruId = $user->tenagaPendidik->id ?? 0;
+        $isAdmin = $user->hasRole(['admin', 'super_admin']);
         
-        if ($user->hasRole(['admin', 'super_admin'])) {
-            // Admin: lihat stats global
+        // 1. DATA STATISTIK ATAS
+        if ($isAdmin) {
             $totalPenilaian = SimaqPenilaian::count();
             $totalSantri = Santri::whereHas('simaqPenilaians')->distinct('santri_id')->count();
-            $totalGuru = auth()->user()->tenagaPendidik->simaqPenilaians()->distinct('guru_id')->count() ?? 0;
+            $totalGuru = SimaqPenilaian::distinct('guru_id')->count();
         } else {
-            // Guru SIMAQ: lihat stats pribadi
             $guru = $user->tenagaPendidik;
-            $totalPenilaian = $guru->simaqPenilaians()->count();
-            $totalSantri = $guru->simaqPenilaians()->distinct('santri_id')->count();
+            $totalPenilaian = $guru ? $guru->simaqPenilaians()->count() : 0;
+            $totalSantri = $guru ? $guru->simaqPenilaians()->distinct('santri_id')->count() : 0;
             $totalGuru = 1;
         }
 
-        $recentPenilaians = SimaqPenilaian::query()
-            ->when(!$user->hasRole(['admin', 'super_admin']), fn($q) => $q->where('guru_id', $user->tenagaPendidik->id ?? 0))
-            ->with(['santri', 'guru', 'kelas'])
-            ->latest('tanggal')
-            ->limit(10)
+        // 2. DATA GRAFIK: Tren Setoran 7 Hari Terakhir
+        $chartDates = collect(range(6, 0))->map(function($days) {
+            return now()->subDays($days)->format('Y-m-d');
+        });
+
+        $chartData = $chartDates->map(function($date) use ($isAdmin, $guruId) {
+            $query = SimaqPenilaian::whereDate('tanggal', $date);
+            if (!$isAdmin) {
+                // Jika guru, hanya lihat grafik setorannya sendiri
+                $query->where('guru_id', $guruId); 
+            }
+            return $query->count();
+        });
+
+        // Format tanggal untuk label di bawah grafik (Contoh: "24 Jul")
+        $chartLabels = $chartDates->map(function($date) {
+            return \Carbon\Carbon::parse($date)->translatedFormat('d M'); 
+        });
+
+        // 3. DATA LEADERBOARD: Top 5 Santri
+        // Menggunakan data otomatis dari SimaqPenilaianObserver
+        $leaderboard = Santri::where('simaq_total_setoran', '>', 0)
+            ->when(!$isAdmin, function($query) use ($guruId) {
+                // Guru hanya melihat santri yang pernah ia nilai
+                return $query->whereHas('simaqPenilaians', function($q) use ($guruId) {
+                    $q->where('guru_id', $guruId);
+                });
+            })
+            ->orderByDesc('simaq_juz_tercapai')   // Prioritas 1: Juz terbanyak
+            ->orderByDesc('simaq_total_bintang')  // Prioritas 2: Bintang tertinggi
+            ->orderByDesc('simaq_total_setoran')  // Prioritas 3: Paling rajin setor
+            ->take(5)
             ->get();
 
-        return view('simaq.dashboard', compact('totalPenilaian', 'totalSantri', 'totalGuru', 'recentPenilaians'));
+        return view('simaq.dashboard', compact(
+            'totalPenilaian', 'totalSantri', 'totalGuru', 
+            'chartLabels', 'chartData', 'leaderboard'
+        ));
     }
 
     /**
-     * List santri untuk kelas guru yang login
+     * Detail santri & History Nilai
      */
-    public function listSantri(Request $request)
+    public function detailSantri($id)
     {
-        $user = auth()->user();
-        $guru = $user->tenagaPendidik;
+        $santri = Santri::findOrFail($id);
+        $penilaians = SimaqPenilaian::where('santri_id', $id)->latest('tanggal')->get();
 
-        $query = Santri::query();
-
-        // Filter by kelas guru yang login (jika bukan admin)
-        if (!$user->hasRole(['admin', 'super_admin']) && $guru) {
-            $kelasIds = Kelas::where('wali_kelas_id', $user->id)->pluck('id');
-            $query->whereHas('santriKelas', fn($q) => $q->whereIn('kelas_id', $kelasIds));
-        }
-
-        // Filter by program SIMAQ
-        if ($request->program) {
-            $query->where('simaq_program', $request->program);
-        }
-
-        // Search
-        if ($request->search) {
-            $query->where(function ($q) use ($request) {
-                $q->where('nis', 'like', "%{$request->search}%")
-                  ->orWhere('nama_lengkap', 'like', "%{$request->search}%");
-            });
-        }
-
-        $santriList = $query->with('simaqPenilaians')->paginate(15);
-
-        return view('simaq.santri.list', compact('santriList'));
+        return view('simaq.detail', compact('santri', 'penilaians'));
     }
 
     /**
-     * Detail santri - history penilaian SIMAQ
+     * Tampilkan Form Input Nilai
      */
-    public function detailSantri(Santri $santri)
+    public function createPenilaian($id)
     {
-        $this->authorize('view', $santri);
-
-        $penilaians = $santri->simaqPenilaians()
-            ->with(['guru', 'kelas'])
-            ->orderBy('tanggal', 'desc')
-            ->paginate(20);
-
-        $statistik = $santri->simaq_statistik ?? [];
-
-        return view('simaq.santri.detail', compact('santri', 'penilaians', 'statistik'));
+        $santri = Santri::findOrFail($id);
+        return view('simaq.create', compact('santri'));
     }
 
     /**
-     * Store penilaian baru
+     * Simpan Penilaian (Jembatan antara UI Sederhana & Database Kompleks)
+     */
+    /**
+     * Simpan Penilaian & Kalkulasi Otomatis (Setoran Harian)
      */
     public function storePenilaian(Request $request)
     {
-        $validated = $request->validate([
-            'santri_id'             => 'required|exists:santri,id',
-            'guru_id'               => 'required|exists:tenaga_pendidik,id',
-            'kelas_id'              => 'required|exists:kelas,id',
-            'program'               => 'required|in:hafalan,tilawah,tahsin',
-            'jenis'                 => 'required|in:setoran_harian,tasmi,pemantapan',
-            'tanggal'               => 'required|date',
-            'surah_ayat'            => 'nullable|string',
-            'halaman'               => 'nullable|integer|min:1',
-            'juz'                   => 'nullable|integer|min:1|max:30',
-            'kesalahan_kelancaran'  => 'nullable|integer|min:0',
-            'kesalahan_tajwid'      => 'nullable|integer|min:0',
-            'kesalahan_makhraj'     => 'nullable|integer|min:0',
-            'nilai_pemantapan'      => 'nullable|numeric|min:0|max:100',
-            'nilai_tasmi'           => 'nullable|numeric|min:0|max:100',
-            'catatan'               => 'nullable|string|max:1000',
+        // 1. Validasi input: Memastikan data berupa angka minimal 0
+        $request->validate([
+            'santri_id'            => 'required|exists:santri,id',
+            'tanggal'              => 'required|date',
+            'program'              => 'required|in:hafalan,tilawah,tahsin',
+            'surah_ayat'           => 'required|string',
+            'kesalahan_kelancaran' => 'required|integer|min:0',
+            'kesalahan_tajwid'     => 'required|integer|min:0',
+            'kesalahan_makhraj'    => 'required|integer|min:0',
+            'catatan'              => 'nullable|string',
         ]);
 
-        try {
-            $penilaian = $this->submitAction->execute($validated);
+        $guruId = auth()->user()->tenagaPendidik->id ?? 0;
+
+        // 2. Minta SimaqScoringService untuk menghitung nilai akhir, huruf, bintang, dll
+        $hasilKalkulasi = $this->scoringService->calculatePenilaian([
+            'jenis'                => 'setoran_harian', 
+            'kesalahan_kelancaran' => $request->kesalahan_kelancaran,
+            'kesalahan_tajwid'     => $request->kesalahan_tajwid,
+            'kesalahan_makhraj'    => $request->kesalahan_makhraj,
+        ]);
+
+        // 3. Gabungkan data dari Form (Kesalahan) dengan Hasil Kalkulasi Mesin, lalu Simpan!
+        SimaqPenilaian::create(array_merge([
+            'santri_id'            => $request->santri_id,
+            'guru_id'              => $guruId,
+            'kelas_id'             => 1, // Opsional jika butuh ID Kelas (default 1 untuk tes)
+            'program'              => $request->program,
+            'jenis'                => 'setoran_harian', // Fix type
+            'tanggal'              => $request->tanggal,
+            'surah_ayat'           => $request->surah_ayat,
             
-            return redirect()->route('simaq.santri.detail', $penilaian->santri)
-                ->with('success', 'Penilaian berhasil disimpan');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Gagal menyimpan penilaian: ' . $e->getMessage());
-        }
+            // Catat log kesalahannya (untuk histori)
+            'kesalahan_kelancaran' => $request->kesalahan_kelancaran,
+            'kesalahan_tajwid'     => $request->kesalahan_tajwid,
+            'kesalahan_makhraj'    => $request->kesalahan_makhraj,
+            
+            'catatan'              => $request->catatan,
+        ], $hasilKalkulasi)); // Timpa sisa kolom dengan (nilai_akhir, huruf, predikat, bintang)
+
+        return redirect()->route('simaq.detail', $request->santri_id)
+            ->with('success', 'Alhamdulillah! Nilai setoran berhasil dikalkulasi dan disimpan.');
     }
 
     /**
-     * Update penilaian
+     * Hapus Penilaian
      */
-    public function updatePenilaian(Request $request, SimaqPenilaian $penilaian)
+    public function destroyPenilaian($id)
     {
-        $this->authorize('update', $penilaian);
+        $penilaian = SimaqPenilaian::findOrFail($id);
+        $santriId = $penilaian->santri_id;
+        $penilaian->delete();
 
-        $validated = $request->validate([
-            'kesalahan_kelancaran'  => 'nullable|integer|min:0',
-            'kesalahan_tajwid'      => 'nullable|integer|min:0',
-            'kesalahan_makhraj'     => 'nullable|integer|min:0',
-            'nilai_pemantapan'      => 'nullable|numeric|min:0|max:100',
-            'nilai_tasmi'           => 'nullable|numeric|min:0|max:100',
-            'catatan'               => 'nullable|string|max:1000',
-        ]);
-
-        try {
-            $data = [
-                'jenis'                    => $penilaian->jenis,
-                'kesalahan_kelancaran'     => $validated['kesalahan_kelancaran'] ?? $penilaian->kesalahan_kelancaran,
-                'kesalahan_tajwid'         => $validated['kesalahan_tajwid'] ?? $penilaian->kesalahan_tajwid,
-                'kesalahan_makhraj'        => $validated['kesalahan_makhraj'] ?? $penilaian->kesalahan_makhraj,
-            ];
-
-            if (in_array($penilaian->jenis, ['tasmi', 'pemantapan'])) {
-                $data['nilai_pemantapan'] = $validated['nilai_pemantapan'] ?? $penilaian->nilai_kelancaran;
-                $data['nilai_tasmi'] = $validated['nilai_tasmi'] ?? $penilaian->nilai_tajwid;
-            }
-
-            $nilaiKalkulasi = $this->scoringService->calculatePenilaian($data);
-
-            $penilaian->update(array_merge($validated, $nilaiKalkulasi));
-
-            return back()->with('success', 'Penilaian berhasil diperbarui');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Gagal mengupdate penilaian: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Delete (soft delete) penilaian
-     */
-    public function destroyPenilaian(SimaqPenilaian $penilaian)
-    {
-        $this->authorize('delete', $penilaian);
-
-        try {
-            $penilaian->delete();
-            
-            return back()->with('success', 'Penilaian berhasil dihapus');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Gagal menghapus penilaian: ' . $e->getMessage());
-        }
+        return redirect()->route('simaq.detail', $santriId)
+            ->with('success', 'Catatan nilai berhasil dihapus.');
     }
 }

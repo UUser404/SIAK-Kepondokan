@@ -5,23 +5,28 @@ use App\Http\Controllers\SimaqController;
 
 /**
  * SIMAQ Routes - Sistem Penilaian Al-Quran
- * 
  * Prefix: /simaq
- * Middleware: auth, verified, EnsureGuruSimaq
  */
-Route::middleware(['auth', 'verified', 'role:guru_simaq|admin|super_admin'])->prefix('simaq')->name('simaq.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:guru_tahsin_tahfizh|admin|super_admin'])->prefix('simaq')->name('simaq.')->group(function () {
     
-    // Dashboard SIMAQ
+    // 0. Dashboard SIMAQ
     Route::get('/', [SimaqController::class, 'dashboard'])->name('dashboard');
     
-    // List santri dengan penilaian
-    Route::get('santri', [SimaqController::class, 'listSantri'])->name('santri.list');
+    // 1. Modul Setoran Harian 
+    Route::get('/harian', [SimaqController::class, 'listSantri'])->name('harian.index');
     
-    // Detail santri & history penilaian
-    Route::get('santri/{santri}', [SimaqController::class, 'detailSantri'])->name('santri.detail');
+    // 2. Modul Ujian Pemantapan (Segera Hadir)
+    Route::get('/pemantapan', function() { return "Halaman Ujian Pemantapan (Segera Hadir)"; })->name('pemantapan.index');
     
-    // CRUD Penilaian
-    Route::post('penilaian', [SimaqController::class, 'storePenilaian'])->name('penilaian.store');
-    Route::patch('penilaian/{penilaian}', [SimaqController::class, 'updatePenilaian'])->name('penilaian.update');
-    Route::delete('penilaian/{penilaian}', [SimaqController::class, 'destroyPenilaian'])->name('penilaian.destroy');
+    // 3. Modul Imtihan Tasmi (Segera Hadir)
+    Route::get('/tasmi', function() { return "Halaman Imtihan Tasmi' (Segera Hadir)"; })->name('tasmi.index');
+    
+    // 4. Modul Jamiyyatul Huffazh (Segera Hadir)
+    Route::get('/huffazh', function() { return "Halaman Jamiyyatul Huffazh (Segera Hadir)"; })->name('huffazh.index');
+
+    // Modul CRUD Penilaian (Menempel pada Santri)
+    Route::get('/santri/{id}', [SimaqController::class, 'detailSantri'])->name('detail');
+    Route::get('/santri/{id}/nilai', [SimaqController::class, 'createPenilaian'])->name('create');
+    Route::post('/nilai', [SimaqController::class, 'storePenilaian'])->name('store');
+    Route::delete('/nilai/{id}', [SimaqController::class, 'destroyPenilaian'])->name('destroy');
 });

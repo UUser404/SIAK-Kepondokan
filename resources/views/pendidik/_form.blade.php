@@ -103,6 +103,7 @@
                     <option value="">-- Pilih Role --</option>
                     @foreach([
                     'guru' => 'Guru',
+                    'guru_tahsin_tahfizh' => 'Guru Tahsin-Tahfizh',
                     'wakil_kurikulum' => 'Wakil Kurikulum',
                     'kesantrian' => 'Bagian Kesantrian',
                     'admin' => 'Staf Admin',
