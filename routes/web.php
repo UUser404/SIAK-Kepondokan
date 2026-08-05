@@ -285,8 +285,4 @@ use App\Http\Controllers\SimaqController;
 Route::middleware(['auth', 'role:guru_tahsin_tahfizh|admin|super_admin'])->prefix('simaq')->name('simaq.')->group(function () {
     // ... hapus semua isinya sampai ...
     Route::delete('/nilai/{id}', [App\Http\Controllers\SimaqController::class, 'destroy'])->name('destroy');
-<<<<<<< HEAD
 });
-=======
-});
->>>>>>> 656b3275c7f4b85b88806de060e0b6439a26f177
