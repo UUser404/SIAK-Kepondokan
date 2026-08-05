@@ -6,7 +6,6 @@ use App\Models\SimaqPenilaian;
 use App\Models\Santri;
 use App\Services\SimaqScoringService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class SimaqController extends Controller
 {
@@ -18,10 +17,7 @@ class SimaqController extends Controller
     }
 
     /**
-     * Dashboard SIMAQ
-     */
-    /**
-     * Dashboard SIMAQ - Overview, Grafik & Leaderboard
+     * 1. Dashboard SIMAQ - Overview, Grafik & Leaderboard
      */
     public function dashboard()
     {
@@ -29,7 +25,7 @@ class SimaqController extends Controller
         $guruId = $user->tenagaPendidik->id ?? 0;
         $isAdmin = $user->hasRole(['admin', 'super_admin']);
         
-        // 1. DATA STATISTIK ATAS
+        // DATA STATISTIK ATAS
         if ($isAdmin) {
             $totalPenilaian = SimaqPenilaian::count();
             $totalSantri = Santri::whereHas('simaqPenilaians')->distinct('santri_id')->count();
@@ -41,7 +37,7 @@ class SimaqController extends Controller
             $totalGuru = 1;
         }
 
-        // 2. DATA GRAFIK: Tren Setoran 7 Hari Terakhir
+        // DATA GRAFIK: Tren Setoran 7 Hari Terakhir
         $chartDates = collect(range(6, 0))->map(function($days) {
             return now()->subDays($days)->format('Y-m-d');
         });
@@ -49,22 +45,18 @@ class SimaqController extends Controller
         $chartData = $chartDates->map(function($date) use ($isAdmin, $guruId) {
             $query = SimaqPenilaian::whereDate('tanggal', $date);
             if (!$isAdmin) {
-                // Jika guru, hanya lihat grafik setorannya sendiri
                 $query->where('guru_id', $guruId); 
             }
             return $query->count();
         });
 
-        // Format tanggal untuk label di bawah grafik (Contoh: "24 Jul")
         $chartLabels = $chartDates->map(function($date) {
             return \Carbon\Carbon::parse($date)->translatedFormat('d M'); 
         });
 
-        // 3. DATA LEADERBOARD: Top 5 Santri
-        // Menggunakan data otomatis dari SimaqPenilaianObserver
+        // DATA LEADERBOARD: Top 5 Santri
         $leaderboard = Santri::where('simaq_total_setoran', '>', 0)
             ->when(!$isAdmin, function($query) use ($guruId) {
-                // Guru hanya melihat santri yang pernah ia nilai
                 return $query->whereHas('simaqPenilaians', function($q) use ($guruId) {
                     $q->where('guru_id', $guruId);
                 });
@@ -82,7 +74,18 @@ class SimaqController extends Controller
     }
 
     /**
-     * Detail santri & History Nilai
+     * 2. Menampilkan daftar santri untuk Setoran Harian
+     */
+    public function listSantri()
+    {
+        // Mengambil semua data santri
+        $santris = \App\Models\Santri::all();
+        
+        return view('simaq.index', compact('santris'));
+    }
+
+    /**
+     * 3. Menampilkan detail riwayat setoran santri
      */
     public function detailSantri($id)
     {
@@ -93,23 +96,20 @@ class SimaqController extends Controller
     }
 
     /**
-     * Tampilkan Form Input Nilai
+     * 4. Menampilkan form input nilai baru
      */
     public function createPenilaian($id)
     {
         $santri = Santri::findOrFail($id);
+        
         return view('simaq.create', compact('santri'));
     }
 
     /**
-     * Simpan Penilaian (Jembatan antara UI Sederhana & Database Kompleks)
-     */
-    /**
-     * Simpan Penilaian & Kalkulasi Otomatis (Setoran Harian)
+     * 5. Simpan Penilaian & Kalkulasi Otomatis (Setoran Harian)
      */
     public function storePenilaian(Request $request)
     {
-        // 1. Validasi input: Memastikan data berupa angka minimal 0
         $request->validate([
             'santri_id'            => 'required|exists:santri,id',
             'tanggal'              => 'required|date',
@@ -123,7 +123,7 @@ class SimaqController extends Controller
 
         $guruId = auth()->user()->tenagaPendidik->id ?? 0;
 
-        // 2. Minta SimaqScoringService untuk menghitung nilai akhir, huruf, bintang, dll
+        // Kalkulasi menggunakan Service
         $hasilKalkulasi = $this->scoringService->calculatePenilaian([
             'jenis'                => 'setoran_harian', 
             'kesalahan_kelancaran' => $request->kesalahan_kelancaran,
@@ -131,38 +131,72 @@ class SimaqController extends Controller
             'kesalahan_makhraj'    => $request->kesalahan_makhraj,
         ]);
 
-        // 3. Gabungkan data dari Form (Kesalahan) dengan Hasil Kalkulasi Mesin, lalu Simpan!
+        // Simpan ke database
         SimaqPenilaian::create(array_merge([
             'santri_id'            => $request->santri_id,
             'guru_id'              => $guruId,
-            'kelas_id'             => 1, // Opsional jika butuh ID Kelas (default 1 untuk tes)
+            'kelas_id'             => 1, // Default sementara
             'program'              => $request->program,
-            'jenis'                => 'setoran_harian', // Fix type
+            'jenis'                => 'setoran_harian', 
             'tanggal'              => $request->tanggal,
             'surah_ayat'           => $request->surah_ayat,
-            
-            // Catat log kesalahannya (untuk histori)
             'kesalahan_kelancaran' => $request->kesalahan_kelancaran,
             'kesalahan_tajwid'     => $request->kesalahan_tajwid,
             'kesalahan_makhraj'    => $request->kesalahan_makhraj,
-            
             'catatan'              => $request->catatan,
-        ], $hasilKalkulasi)); // Timpa sisa kolom dengan (nilai_akhir, huruf, predikat, bintang)
+        ], $hasilKalkulasi)); 
 
         return redirect()->route('simaq.detail', $request->santri_id)
             ->with('success', 'Alhamdulillah! Nilai setoran berhasil dikalkulasi dan disimpan.');
     }
 
     /**
-     * Hapus Penilaian
+     * 6. Menghapus data nilai (Soft Delete)
      */
     public function destroyPenilaian($id)
     {
         $penilaian = SimaqPenilaian::findOrFail($id);
         $santriId = $penilaian->santri_id;
+        
         $penilaian->delete();
 
         return redirect()->route('simaq.detail', $santriId)
-            ->with('success', 'Catatan nilai berhasil dihapus.');
+            ->with('success', 'Catatan nilai setoran berhasil dihapus.');
+    }
+
+    /**
+     * 7. SINKRONISASI NILAI SIMAQ KE RAPOR UTAMA SIAK (Hybrid)
+     */
+    public function syncToRapor(Request $request)
+    {
+        $mapelSimaq = \App\Models\MataPelajaran::where('nama', 'like', '%Tahfizh%')
+                        ->orWhere('nama', 'like', '%Tahsin%')
+                        ->orWhere('nama', 'like', '%SIMAQ%')
+                        ->first();
+
+        if (!$mapelSimaq) {
+            return back()->with('error', 'Gagal! Mata Pelajaran Tahsin/Tahfizh tidak ditemukan di sistem SIAK Utama.');
+        }
+
+        $santris = Santri::whereNotNull('simaq_total_nilai')->get();
+        $count = 0;
+
+        foreach($santris as $santri) {
+            if (class_exists('\App\Models\Nilai')) {
+                \App\Models\Nilai::updateOrCreate(
+                    [
+                        'santri_id' => $santri->id,
+                        'mata_pelajaran_id' => $mapelSimaq->id,
+                    ],
+                    [
+                        'nilai_akhir' => $santri->simaq_total_nilai, 
+                        'catatan' => 'Sinkronisasi otomatis dari modul SIMAQ'
+                    ]
+                );
+                $count++;
+            }
+        }
+
+        return back()->with('success', "Alhamdulillah! Sebanyak $count nilai akhir SIMAQ berhasil ditarik ke Rapor SIAK Utama.");
     }
 }
