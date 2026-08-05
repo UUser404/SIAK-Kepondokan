@@ -253,9 +253,12 @@ class NilaiController extends Controller
 
         abort_if(! $ta, 422, 'Tidak ada tahun ajaran aktif.');
 
+        $namaKelasFile = str_replace(['/', '\\'], '-', $kelas->nama);
+        $namaMapelFile = str_replace(['/', '\\'], '-', $mataPelajaran->nama);
+
         return Excel::download(
             new NilaiExport($kelas, $mataPelajaran, $ta, $this->penilaianService),
-            "nilai-{$kelas->nama}-{$mataPelajaran->nama}-" . now()->format('Y-m-d') . '.xlsx'
+            "nilai-{$namaKelasFile}-{$namaMapelFile}-" . now()->format('Y-m-d') . '.xlsx'
         );
     }
 
@@ -275,9 +278,12 @@ class NilaiController extends Controller
 
         abort_if(! $ta, 422, 'Tidak ada tahun ajaran aktif.');
 
+        $namaKelasFile = str_replace(['/', '\\'], '-', $kelas->nama);
+        $namaMapelFile = str_replace(['/', '\\'], '-', $mataPelajaran->nama);
+
         return Excel::download(
             new PresensiExport($kelas, $mataPelajaran, $ta, $this->presensiKbmService),
-            "presensi-{$kelas->nama}-{$mataPelajaran->nama}-" . now()->format('Y-m-d') . '.xlsx'
+            "presensi-{$namaKelasFile}-{$namaMapelFile}-" . now()->format('Y-m-d') . '.xlsx'
         );
     }
 }

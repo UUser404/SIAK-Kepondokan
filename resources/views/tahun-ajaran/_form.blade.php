@@ -73,6 +73,49 @@
             </div>
         </div>
 
+        <div>
+            <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
+                Tanggal Cetak Rapor (Hijriah)
+            </label>
+            <input type="text" name="tanggal_rapor_hijriah" dir="rtl"
+                value="{{ old('tanggal_rapor_hijriah', $tahunAjaran?->tanggal_rapor_hijriah) }}"
+                placeholder="مثال: 02 رجب 1447"
+                class="w-full px-3.5 py-2.5 text-sm rounded-xl border
+                          border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
+                          text-siakad-dark dark:text-white placeholder-gray-400
+                          focus:ring-2 outline-none transition">
+            <p class="text-xs text-siakad-secondary dark:text-gray-400 mt-1">
+                Diisi manual (bukan konversi otomatis) — dipakai di kop Rapor Arab, ditampilkan berdampingan dengan Tanggal Selesai (Masehi).
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
+                    Nama Kepala Sekolah (Arab)
+                </label>
+                <input type="text" name="nama_kepala_sekolah_arab" dir="rtl"
+                    value="{{ old('nama_kepala_sekolah_arab', $tahunAjaran?->nama_kepala_sekolah_arab) }}"
+                    placeholder="رامي صالح الدين معروف"
+                    class="w-full px-3.5 py-2.5 text-sm rounded-xl border
+                              border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
+                              text-siakad-dark dark:text-white placeholder-gray-400
+                              focus:ring-2 outline-none transition">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
+                    Nama Mudir Ma'had (Arab)
+                </label>
+                <input type="text" name="nama_mudir_arab" dir="rtl"
+                    value="{{ old('nama_mudir_arab', $tahunAjaran?->nama_mudir_arab) }}"
+                    placeholder="محمد إبراهيم"
+                    class="w-full px-3.5 py-2.5 text-sm rounded-xl border
+                              border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
+                              text-siakad-dark dark:text-white placeholder-gray-400
+                              focus:ring-2 outline-none transition">
+            </div>
+        </div>
+
         <div class="flex items-center gap-3 pt-2">
             <button type="submit"
                 class="px-6 py-2.5 text-sm font-semibold rounded-xl text-white

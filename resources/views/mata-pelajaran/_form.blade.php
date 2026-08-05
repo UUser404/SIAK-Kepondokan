@@ -62,6 +62,28 @@
 
         <div>
             <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
+                Kategori (pengelompokan di Rapor)
+            </label>
+            <select name="kategori"
+                class="w-full px-3.5 py-2.5 text-sm rounded-xl border
+                           border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
+                           text-siakad-dark dark:text-white focus:ring-2 outline-none transition">
+                <option value="">-- Belum dikelompokkan --</option>
+                @foreach(['القرآن و علومه', 'العقيدة و الأخلاق', 'الشّريعة', 'اللغة العربية'] as $kat)
+                <option value="{{ $kat }}"
+                    {{ old('kategori', $mataPelajaran?->kategori) === $kat ? 'selected' : '' }}>
+                    {{ $kat }}
+                </option>
+                @endforeach
+            </select>
+            <p class="text-xs text-siakad-secondary dark:text-gray-400 mt-1">
+                Mapel dikelompokkan di rapor berdasarkan kategori ini — mapel tanpa kategori tidak akan tampil di rapor.
+            </p>
+            @error('kategori')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
                 Tingkat <span class="text-red-500">*</span>
             </label>
             <select name="tingkat" required

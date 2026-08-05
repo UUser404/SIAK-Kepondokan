@@ -3,7 +3,7 @@
 {{-- Dipakai bersama oleh create.blade.php & edit.blade.php        --}}
 {{-- ============================================================ --}}
 @php
-    $roleOptions = ['mudir', 'wakil_kurikulum', 'guru', 'kesantrian', 'admin', 'sysadmin'];
+$roleOptions = ['mudir', 'wakil_kurikulum', 'guru', 'kesantrian', 'admin', 'sysadmin'];
 @endphp
 
 <div class="card-saas overflow-hidden">
@@ -33,6 +33,20 @@
             </label>
             <input type="text" name="name" value="{{ old('name', $user->name ?? '') }}" required
                 placeholder="Nama sesuai identitas"
+                class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200
+                          bg-gray-50 text-siakad-dark placeholder-gray-400
+                          focus:ring-2 outline-none transition">
+        </div>
+
+        {{-- Nama Arab (opsional, dipakai kalau user ini jadi wali kelas/kepsek/
+             mudir yang tanda tangan di Rapor) --}}
+        <div>
+            <label class="block text-sm font-medium text-siakad-dark mb-1.5">
+                Nama (Arab)
+            </label>
+            <input type="text" name="nama_arab" value="{{ old('nama_arab', $user->nama_arab ?? '') }}"
+                placeholder="Contoh: فخر رضا — dipakai di Rapor kalau jadi wali kelas/kepsek/mudir"
+                dir="rtl"
                 class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200
                           bg-gray-50 text-siakad-dark placeholder-gray-400
                           focus:ring-2 outline-none transition">
@@ -72,9 +86,9 @@
             <label class="block text-sm font-medium text-siakad-dark mb-1.5">
                 Password
                 @if(!isset($user) || !$user)
-                    <span class="text-red-500">*</span>
+                <span class="text-red-500">*</span>
                 @else
-                    <span class="text-xs font-normal text-siakad-secondary">(kosongkan jika tidak diganti)</span>
+                <span class="text-xs font-normal text-siakad-secondary">(kosongkan jika tidak diganti)</span>
                 @endif
             </label>
             <input type="password" name="password" autocomplete="new-password"

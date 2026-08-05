@@ -114,18 +114,18 @@ class PenilaianService
             'mata_pelajaran_id' => $mataPelajaran->id,
             'tahun_ajaran_id'   => $tahunAjaran->id,
         ])
-        ->whereIn('santri_id', $santriList->pluck('id'))
-        ->get()
-        ->groupBy('santri_id');
+            ->whereIn('santri_id', $santriList->pluck('id'))
+            ->get()
+            ->groupBy('santri_id');
 
         $nilaiAkhirMap = NilaiAkhir::where([
             'kelas_id'          => $kelas->id,
             'mata_pelajaran_id' => $mataPelajaran->id,
             'tahun_ajaran_id'   => $tahunAjaran->id,
         ])
-        ->whereIn('santri_id', $santriList->pluck('id'))
-        ->get()
-        ->keyBy('santri_id');
+            ->whereIn('santri_id', $santriList->pluck('id'))
+            ->get()
+            ->keyBy('santri_id');
 
         $rows = [];
         foreach ($santriList as $santri) {
@@ -259,11 +259,11 @@ class PenilaianService
             'kelas_id'          => $kelas->id,
             'mata_pelajaran_id' => $mataPelajaran->id,
         ])
-        ->whereBetween('tanggal', [
-            $tahunAjaran->tanggal_mulai,
-            $tahunAjaran->tanggal_selesai,
-        ])
-        ->pluck('id');
+            ->whereBetween('tanggal', [
+                $tahunAjaran->tanggal_mulai,
+                $tahunAjaran->tanggal_selesai,
+            ])
+            ->pluck('id');
 
         $total  = $pertemuanIds->count();
         $hadir  = \App\Models\PresensiKbm::whereIn('pertemuan_id', $pertemuanIds)
@@ -315,5 +315,44 @@ class PenilaianService
             'alpa'   => $alpa,
             'persen' => $total > 0 ? round(($hadir / $total) * 100, 1) : 0,
         ];
+    }
+
+    /**
+     * Peringkat santri dalam 1 kelas, berdasarkan TOTAL nilai akhir (jumlah
+     * semua mapel) -- sesuai rumus RANK() di template rapor asli, bukan
+     * rata-rata (urutannya sama saja selama semua santri dinilai di jumlah
+     * mapel yang sama, tapi disamakan persis biar konsisten dengan template).
+     *
+     * Peringkat dihitung standar ala Excel RANK(): nilai sama dapat peringkat
+     * sama, peringkat berikutnya "melompat" sesuai jumlah yang seri (bukan
+     * peringkat rapat/dense).
+     *
+     * @return array [santri_id => ['jumlah' => float, 'peringkat' => int, 'peringkat_tampil' => int|null]]
+     *   `peringkat_tampil` null kalau peringkat > 5 -- sesuai template asli,
+     *   cuma 5 besar yang peringkatnya ditampilkan di rapor (selain itu "-").
+     */
+    public function getRankingKelas(Kelas $kelas, TahunAjaran $tahunAjaran): array
+    {
+        $santriList = $kelas->santri;
+
+        $jumlahPerSantri = [];
+        foreach ($santriList as $santri) {
+            $jumlahPerSantri[$santri->id] = (float) NilaiAkhir::where('santri_id', $santri->id)
+                ->where('kelas_id', $kelas->id)
+                ->where('tahun_ajaran_id', $tahunAjaran->id)
+                ->sum('nilai_akhir');
+        }
+
+        $hasil = [];
+        foreach ($jumlahPerSantri as $santriId => $jumlah) {
+            $peringkat = collect($jumlahPerSantri)->filter(fn($v) => $v > $jumlah)->count() + 1;
+            $hasil[$santriId] = [
+                'jumlah'           => $jumlah,
+                'peringkat'        => $peringkat,
+                'peringkat_tampil' => $peringkat <= 5 ? $peringkat : null,
+            ];
+        }
+
+        return $hasil;
     }
 }

@@ -18,6 +18,7 @@ class Santri extends Model
         'nis',
         'nisn',
         'nama_lengkap',
+        'nama_arab',
         'nama_panggilan',
         'tempat_lahir',
         'tanggal_lahir',
@@ -143,37 +144,5 @@ class Santri extends Model
             ->where('status', 'aktif')
             ->join('kategori_pelanggaran', 'pelanggaran.kategori_pelanggaran_id', '=', 'kategori_pelanggaran.id')
             ->sum('kategori_pelanggaran.poin');
-    }
-
-    // ---- SIMAQ Relations ----
-
-    public function simaqPenilaians()
-    {
-        return $this->hasMany(SimaqPenilaian::class);
-    }
-
-    public function simaqHarian()
-    {
-        return $this->simaqPenilaians()->harian();
-    }
-
-    public function simaqUjian()
-    {
-        return $this->simaqPenilaians()->ujian();
-    }
-
-    // ---- SIMAQ Accessors ----
-
-    public function getSimaqStatistikAttribute(): array
-    {
-        return [
-            'total_penilaian'    => $this->simaqPenilaians()->count(),
-            'rata_nilai'         => round($this->simaqPenilaians()->avg('nilai_akhir'), 2),
-            'rata_bintang'       => round($this->simaqPenilaians()->avg('bintang'), 2),
-            'lulus_count'        => $this->simaqPenilaians()->lulus()->count(),
-            'tidak_lulus_count'  => $this->simaqPenilaians()->tidakLulus()->count(),
-            'total_setoran'      => $this->simaqPenilaians()->harian()->count(),
-            'rata_nilai_ujian'   => round($this->simaqPenilaians()->ujian()->avg('nilai_akhir'), 2),
-        ];
     }
 }

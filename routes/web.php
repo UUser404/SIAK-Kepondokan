@@ -70,6 +70,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('rapor', [\App\Http\Controllers\Kurikulum\RaporController::class, 'index'])->name('rapor.index');
         Route::get('rapor/{santri}', [\App\Http\Controllers\Kurikulum\RaporController::class, 'show'])->name('rapor.show');
         Route::get('rapor/{santri}/cetak', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetak'])->name('rapor.cetak');
+        Route::get('rapor/{santri}/cetak-arab', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetakArab'])->name('rapor.cetak-arab');
 
         // AI Advisor
         Route::get('ai-advisor', [\App\Http\Controllers\AiAdvisorController::class, 'index'])->name('ai.index');
@@ -116,7 +117,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Predikat Sikap
         Route::get('predikat-sikap/{kelas}', [\App\Http\Controllers\WaliKelas\PredikatSikapController::class, 'index'])->name('predikat-sikap.index');
         Route::post('predikat-sikap/{kelas}', [\App\Http\Controllers\WaliKelas\PredikatSikapController::class, 'store'])->name('predikat-sikap.store');
-        Route::post('predikat-sikap/{kelas}/hitung-kedisiplinan', [\App\Http\Controllers\WaliKelas\PredikatSikapController::class, 'hitungKedisiplinan'])->name('predikat-sikap.hitung-kedisiplinan');
 
         // Nilai Ekstrakurikuler
         Route::get('nilai-ekstrakurikuler/{kelas}', [\App\Http\Controllers\WaliKelas\NilaiEkstrakurikulerController::class, 'index'])->name('nilai-ekstrakurikuler.index');
@@ -126,6 +126,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('rapor', [\App\Http\Controllers\Kurikulum\RaporController::class, 'index'])->name('rapor.index');
         Route::get('rapor/{santri}', [\App\Http\Controllers\Kurikulum\RaporController::class, 'show'])->name('rapor.show');
         Route::get('rapor/{santri}/cetak', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetak'])->name('rapor.cetak');
+        Route::get('rapor/{santri}/cetak-arab', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetakArab'])->name('rapor.cetak-arab');
     });
 
     // ==========================================
@@ -199,6 +200,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [\App\Http\Controllers\Admin\TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
         Route::resource('tingkatan', \App\Http\Controllers\Admin\TingkatanController::class)->except(['show']);
         Route::resource('mata-pelajaran', \App\Http\Controllers\Admin\MataPelajaranController::class);
+        Route::get('kkm', [\App\Http\Controllers\Admin\KkmController::class, 'index'])->name('kkm.index');
+        Route::post('kkm', [\App\Http\Controllers\Admin\KkmController::class, 'store'])->name('kkm.store');
         Route::resource('ekstrakurikuler', \App\Http\Controllers\Admin\EkstrakurikulerController::class);
         Route::resource('komponen-nilai', \App\Http\Controllers\Admin\KomponenNilaiController::class);
 
@@ -269,6 +272,17 @@ Route::middleware('guest')->get('/simaq/login', function () {
     // Trik Cerdas: Beritahu sistem bahwa setelah login sukses, 
     // user HARUS diarahkan ke Dashboard SIMAQ, bukan Dashboard SIAK.
     session(['url.intended' => route('simaq.dashboard')]);
-    
+
     return view('simaq.login');
 })->name('simaq.login');
+
+use App\Http\Controllers\SimaqController;
+
+// PERHATIKAN BARIS INI: middleware-nya sekarang mencari 'guru_tahsin_tahfizh'
+// RUTE KHUSUS SIMAQ (Guru Tahsin-Tahfizh)
+// PERHATIKAN BARIS INI: middleware-nya sekarang mencari 'guru_tahsin_tahfizh'
+// RUTE KHUSUS SIMAQ (Guru Tahsin-Tahfizh)
+Route::middleware(['auth', 'role:guru_tahsin_tahfizh|admin|super_admin'])->prefix('simaq')->name('simaq.')->group(function () {
+    // ... hapus semua isinya sampai ...
+    Route::delete('/nilai/{id}', [App\Http\Controllers\SimaqController::class, 'destroy'])->name('destroy');
+});

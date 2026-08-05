@@ -32,8 +32,8 @@ class SantriImportService
      *
      * @param array $rows - Array data dari Excel. Maatwebsite\Excel dengan
      *   WithHeadingRow default nge-slug header ("Nama Lengkap" -> nama_lengkap,
-     *   "NIS" -> nis, dst) -- jadi key di $row HARUS pakai bentuk slug ini,
-     *   bukan nama kolom aslinya.
+     *   "Nama Arab" -> nama_arab, "NIS" -> nis, dst) -- jadi key di $row HARUS
+     *   pakai bentuk slug ini, bukan nama kolom aslinya.
      * @return array Preview data dengan struktur: ['records' => [...], 'summary' => [...]]
      */
     public function validateAndPrepare(array $rows): array
@@ -70,12 +70,14 @@ class SantriImportService
      * Process satu row dari Excel.
      *
      * Key di $row pakai bentuk slug (default HeadingRowFormatter Maatwebsite\Excel):
-     * "NIS" -> nis, "Nama Lengkap" -> nama_lengkap, "Kelas" -> kelas, "Asrama" -> asrama.
+     * "NIS" -> nis, "Nama Lengkap" -> nama_lengkap, "Nama Arab" -> nama_arab,
+     * "Kelas" -> kelas, "Asrama" -> asrama.
      */
     private function processRow(array $row, int $rowNumber): array
     {
         $nis         = trim($row['nis'] ?? '');
         $namaLengkap = trim($row['nama_lengkap'] ?? '');
+        $namaArab    = trim($row['nama_arab'] ?? '');
         $kelasBaru   = trim($row['kelas'] ?? '');
         $asramaBaru  = trim($row['asrama'] ?? '');
 
@@ -83,10 +85,12 @@ class SantriImportService
             'row_number' => $rowNumber,
             'nis' => $nis,
             'nama_baru' => $namaLengkap,
+            'nama_arab_baru' => $namaArab,
             'kelas_baru' => $kelasBaru,
             'asrama_baru' => $asramaBaru,
             'santri_id' => null,
             'nama_lama' => '-',
+            'nama_arab_lama' => '-',
             'nama_berbeda' => false,
             'nama_similarity' => 1.0,
             'kelas_lama' => '-',
@@ -113,6 +117,9 @@ class SantriImportService
 
         $record['santri_id'] = $santri->id;
         $record['nama_lama'] = $santri->nama_lengkap;
+        $record['nama_arab_lama'] = $santri->nama_arab ?? '-';
+        $record['nama_arab_lama'] = $santri->nama_arab ?? '-';
+        $record['nama_arab_lama'] = $santri->nama_arab ?? '-';
 
         // Check nama berbeda dengan similarity
         if (!empty($namaLengkap)) {
@@ -225,6 +232,20 @@ class SantriImportService
                     $namaLama = $santri->nama_lengkap;
                     $santri->update(['nama_lengkap' => $record['nama_baru']]);
                     ActivityLogService::logUpdate($santri, ['nama_lengkap' => $namaLama]);
+                }
+
+                // Update Nama Arab kalau diisi -- tidak digerbang similarity check
+                // seperti nama_lengkap (field ini sering kosong dari awal, jadi
+                // "beda" dari kosong selalu wajar, bukan indikasi typo).
+                if (!empty($record['nama_arab_baru'])) {
+                    $santri->update(['nama_arab' => $record['nama_arab_baru']]);
+                }
+
+                // Update nama Arab kalau diisi -- tidak pakai cek similarity seperti
+                // nama Latin (field ini kebanyakan masih kosong sebelum diisi lewat
+                // import, jadi langsung ditimpa kalau ada isinya di Excel).
+                if (!empty($record['nama_arab_baru'])) {
+                    $santri->update(['nama_arab' => $record['nama_arab_baru']]);
                 }
 
                 // Update kelas kalau valid
