@@ -1,6 +1,19 @@
 {{-- ============================================================ --}}
 {{-- resources/views/rapor/index.blade.php                       --}}
+{{-- View ini dipakai bersama oleh 2 grup rute yang beda role      --}}
+{{-- (kurikulum.rapor.* untuk Wakil Kurikulum/Sysadmin, dan        --}}
+{{-- wali-kelas.rapor.* untuk guru yang jadi wali kelas) tapi       --}}
+{{-- dilayani controller yang sama (Kurikulum\RaporController).    --}}
+{{-- Route generate HARUS dinamis sesuai grup yang sedang aktif -- --}}
+{{-- kalau di-hardcode ke 'kurikulum.rapor.*', wali kelas kena 403 --}}
+{{-- karena grup rute kurikulum.* dibatasi role wakil_kurikulum|   --}}
+{{-- sysadmin lewat middleware, walau RaporController sendiri      --}}
+{{-- sudah punya authorizeSantri() yang benar mengizinkan wali     --}}
+{{-- kelas untuk kelasnya sendiri.                                 --}}
 {{-- ============================================================ --}}
+@php
+$routePrefix = request()->routeIs('wali-kelas.*') ? 'wali-kelas' : 'kurikulum';
+@endphp
 <x-app-layout>
     <x-slot name="header">Rapor</x-slot>
 
@@ -126,13 +139,13 @@
                         </td>
                         <td class="px-5 py-3.5">
                             <div class="flex items-center gap-2">
-                                <a href="{{ route('kurikulum.rapor.show', $santri) }}"
+                                <a href="{{ route($routePrefix.".rapor.show", $santri) }}"
                                     class="px-3 py-1.5 text-xs font-medium rounded-xl border transition
                                       hover:bg-siakad-primary/5"
                                     style="border-color: var(--siakad-primary); color: var(--siakad-primary);">
                                     Lihat
                                 </a>
-                                <a href="{{ route('kurikulum.rapor.cetak', $santri) }}"
+                                <a href="{{ route($routePrefix.".rapor.cetak", $santri) }}"
                                     target="_blank"
                                     class="px-3 py-1.5 text-xs font-semibold rounded-xl text-white transition
                                       hover:-translate-y-0.5"

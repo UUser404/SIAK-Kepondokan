@@ -21,6 +21,9 @@
                 {{ $pertemuan->kelas->nama }} ·
                 {{ $pertemuan->tanggal->locale('id')->isoFormat('dddd, D MMMM Y') }} ·
                 Pertemuan ke-{{ $pertemuan->pertemuan_ke }}
+                @if($pertemuan->guru_id !== auth()->id())
+                · <span class="italic">diinput oleh {{ $pertemuan->guru->name }}</span>
+                @endif
             </p>
         </div>
     </div>

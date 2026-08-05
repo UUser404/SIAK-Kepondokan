@@ -28,12 +28,14 @@ class SantriExport implements FromQuery, WithHeadings, WithMapping, WithStyles, 
     {
         $ta = TahunAjaran::aktif();
 
-        return Santri::with(['santriKelas.kelas'])
+        return Santri::with(['santriKelas.kelas', 'penempatanKamar.kamar.asrama'])
             ->when(isset($this->filters['status']), fn($q) => $q->where('status', $this->filters['status']))
-            ->when(isset($this->filters['kelas_id']) && $ta, fn($q) => $q->whereHas('santriKelas', fn($k) =>
+            ->when(isset($this->filters['kelas_id']) && $ta, fn($q) => $q->whereHas(
+                'santriKelas',
+                fn($k) =>
                 $k->where('kelas_id', $this->filters['kelas_id'])
-                  ->where('tahun_ajaran_id', $ta->id)
-                  ->where('status', 'aktif')
+                    ->where('tahun_ajaran_id', $ta->id)
+                    ->where('status', 'aktif')
             ))
             ->orderBy('nama_lengkap');
     }
@@ -41,9 +43,21 @@ class SantriExport implements FromQuery, WithHeadings, WithMapping, WithStyles, 
     public function headings(): array
     {
         return [
-            'No', 'NIS', 'NISN', 'Nama Lengkap', 'Nama Panggilan',
-            'L/P', 'Tempat Lahir', 'Tanggal Lahir', 'Kelas',
-            'Angkatan', 'Asal Sekolah', 'Nama Wali', 'No. HP Wali',
+            'No',
+            'NIS',
+            'NISN',
+            'Nama Lengkap',
+            'Nama Panggilan',
+            'L/P',
+            'Tempat Lahir',
+            'Tanggal Lahir',
+            'Kelas',
+            'Asrama',
+            'Kamar',
+            'Angkatan',
+            'Asal Sekolah',
+            'Nama Wali',
+            'No. HP Wali',
             'Status',
         ];
     }
@@ -54,6 +68,9 @@ class SantriExport implements FromQuery, WithHeadings, WithMapping, WithStyles, 
         $no++;
 
         $kelas = $santri->santriKelas->where('status', 'aktif')->first()?->kelas?->nama ?? '-';
+        $penempatanAktif = $santri->penempatanKamar->where('is_aktif', true)->first();
+        $asrama = $penempatanAktif?->kamar?->asrama?->nama ?? '-';
+        $kamar = $penempatanAktif?->kamar?->nomor_kamar ?? '-';
 
         return [
             $no,
@@ -65,6 +82,8 @@ class SantriExport implements FromQuery, WithHeadings, WithMapping, WithStyles, 
             $santri->tempat_lahir ?? '-',
             $santri->tanggal_lahir?->format('d/m/Y') ?? '-',
             $kelas,
+            $asrama,
+            $kamar,
             $santri->angkatan ?? '-',
             $santri->asal_sekolah ?? '-',
             $santri->nama_wali ?? $santri->nama_ayah ?? '-',
@@ -86,9 +105,22 @@ class SantriExport implements FromQuery, WithHeadings, WithMapping, WithStyles, 
     public function columnWidths(): array
     {
         return [
-            'A' => 5,  'B' => 15, 'C' => 15, 'D' => 30, 'E' => 15,
-            'F' => 12, 'G' => 18, 'H' => 15, 'I' => 10, 'J' => 10,
-            'K' => 25, 'L' => 25, 'M' => 18, 'N' => 12,
+            'A' => 5,
+            'B' => 15,
+            'C' => 15,
+            'D' => 30,
+            'E' => 15,
+            'F' => 12,
+            'G' => 18,
+            'H' => 15,
+            'I' => 10,
+            'J' => 18,
+            'K' => 12,
+            'L' => 10,
+            'M' => 25,
+            'N' => 25,
+            'O' => 18,
+            'P' => 12,
         ];
     }
 }

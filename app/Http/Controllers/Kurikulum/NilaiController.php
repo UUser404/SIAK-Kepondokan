@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\NilaiAkhir;
+use App\Models\PenugasanMengajar;
 use App\Models\TahunAjaran;
 use App\Services\PenilaianService;
 use App\Services\PresensiKbmService;
@@ -37,21 +38,42 @@ class NilaiController extends Controller
 
         $mapelList = MataPelajaran::where('is_active', true)->orderBy('nama')->get();
 
-        // Progress finalisasi per kelas
+        // Progress finalisasi per kelas.
+        // PENTING: "total mapel" per kelas HARUS dari Penugasan Mengajar (mapel yang
+        // benar-benar ditugaskan/diampu guru di kelas itu), BUKAN dari seluruh mapel
+        // aktif sistem -- sebelumnya pakai $mapelList->count() global, jadi kelas
+        // SMP dan SMA (yang mapel-nya beda) dianggap butuh jumlah mapel yang sama.
+        // Progress juga dihitung per kombinasi santri x mapel (bukan per santri
+        // doang) -- sebelumnya 1 mapel selesai untuk semua santri sudah dianggap
+        // 100% "Lengkap" walau mapel lain belum tersentuh sama sekali.
         $progressMap = [];
         if ($ta) {
+            $penugasanPerKelas = PenugasanMengajar::where('tahun_ajaran_id', $ta->id)
+                ->select('kelas_id', 'mata_pelajaran_id')
+                ->distinct()
+                ->get()
+                ->groupBy('kelas_id');
+
             foreach ($kelasList as $kelas) {
                 $totalSantri = $kelas->jumlah_santri;
-                $totalMapel  = $mapelList->count();
-                $sudahFinal  = NilaiAkhir::where('kelas_id', $kelas->id)
+                $mapelIds    = $penugasanPerKelas->get($kelas->id, collect())
+                    ->pluck('mata_pelajaran_id')->unique()->values();
+                $totalMapel  = $mapelIds->count();
+
+                $sudahFinal = $totalMapel > 0
+                    ? NilaiAkhir::where('kelas_id', $kelas->id)
                     ->where('tahun_ajaran_id', $ta->id)
-                    ->distinct('santri_id')
-                    ->count('santri_id');
+                    ->whereIn('mata_pelajaran_id', $mapelIds)
+                    ->count()
+                    : 0;
+
+                $totalDiperlukan = $totalSantri * $totalMapel;
 
                 $progressMap[$kelas->id] = [
-                    'sudah'  => $sudahFinal,
-                    'total'  => $totalSantri,
-                    'persen' => $totalSantri > 0 ? round(($sudahFinal / $totalSantri) * 100) : 0,
+                    'sudah'       => $sudahFinal,
+                    'total'       => $totalDiperlukan,
+                    'total_mapel' => $totalMapel,
+                    'persen'      => $totalDiperlukan > 0 ? round(($sudahFinal / $totalDiperlukan) * 100) : 0,
                 ];
             }
         }
@@ -69,10 +91,29 @@ class NilaiController extends Controller
         $mapelId       = $request->mapel_id;
 
         $kelasList = Kelas::where('tahun_ajaran_id', $ta?->id)->with('tingkatan')->get();
-        $mapelList = MataPelajaran::where('is_active', true)->orderBy('nama')->get();
+        $kelas     = $kelasId ? Kelas::find($kelasId) : $kelasList->first();
 
-        $kelas        = $kelasId ? Kelas::find($kelasId) : $kelasList->first();
-        $mataPelajaran = $mapelId ? MataPelajaran::find($mapelId) : $mapelList->first();
+        // Dropdown mapel HARUS di-scope ke yang benar ditugaskan (Penugasan Mengajar)
+        // untuk kelas ini di TA aktif -- sebelumnya pakai MataPelajaran::where('is_active')
+        // global (bug yang sama seperti di index(), lihat catatan di sana). Kalau kelas
+        // ini belum ada penugasan sama sekali (mis. kelas baru, cuma ada data santri),
+        // dropdown-nya kosong -- bukan nampilin semua mapel sistem.
+        $mapelIds = collect();
+        if ($kelas && $ta) {
+            $mapelIds = PenugasanMengajar::where('kelas_id', $kelas->id)
+                ->where('tahun_ajaran_id', $ta->id)
+                ->distinct()
+                ->pluck('mata_pelajaran_id');
+        }
+        $mapelList = MataPelajaran::whereIn('id', $mapelIds)->orderBy('nama')->get();
+
+        // Fallback ke mapel pertama yang valid kalau mapel_id kosong ATAU mapel_id
+        // itu bukan mapel yang ditugaskan ke kelas ini (mis. user baru ganti kelas
+        // lewat dropdown, tapi mapel_id lama di form masih nyangkut dari kelas
+        // sebelumnya dan kebetulan tidak valid untuk kelas yang baru dipilih).
+        $mataPelajaran = ($mapelId && $mapelIds->contains($mapelId))
+            ? MataPelajaran::find($mapelId)
+            : $mapelList->first();
 
         $rekap = null;
         $statistik = null;
@@ -108,9 +149,91 @@ class NilaiController extends Controller
 
         $results = $this->penilaianService->hitungNilaiAkhirBulk($kelas, $mataPelajaran, $ta);
 
+        // FIX: $results itu array (satu entri per santri), sebelumnya diselipkan
+        // langsung ke string ("{$results} santri") -> PHP nge-print literal "Array"
+        // (Array to string conversion), bukan angka. Sekarang pakai count().
         return back()->with(
             'success',
-            "Nilai akhir {$kelas->nama} — {$mataPelajaran->nama} berhasil dikalkulasi ({$results} santri)."
+            "Nilai akhir {$kelas->nama} — {$mataPelajaran->nama} berhasil dikalkulasi (" . count($results) . " santri)."
+        );
+    }
+
+    /**
+     * Finalisasi SEMUA mata pelajaran aktif sekaligus untuk satu kelas -- supaya
+     * Wakil Kurikulum tidak perlu klik satu-satu per mapel kalau memang mau
+     * finalisasi kelas itu secara penuh.
+     */
+    public function finalizeKelas(Request $request)
+    {
+        $request->validate([
+            'kelas_id' => ['required', 'exists:kelas,id'],
+        ]);
+
+        $ta    = TahunAjaran::aktif();
+        $kelas = Kelas::findOrFail($request->kelas_id);
+        abort_if(!$ta, 422, 'Tidak ada tahun ajaran aktif.');
+
+        // Cuma finalisasi mapel yang benar ditugaskan ke kelas ini (via Penugasan
+        // Mengajar), bukan semua mapel aktif sistem -- konsisten sama cara hitung
+        // progress di index().
+        $mapelIds = PenugasanMengajar::where('kelas_id', $kelas->id)
+            ->where('tahun_ajaran_id', $ta->id)
+            ->distinct()
+            ->pluck('mata_pelajaran_id');
+        $mapelList = MataPelajaran::whereIn('id', $mapelIds)->get();
+
+        $totalSantri = 0;
+
+        foreach ($mapelList as $mapel) {
+            $results = $this->penilaianService->hitungNilaiAkhirBulk($kelas, $mapel, $ta);
+            $totalSantri += count($results);
+        }
+
+        return back()->with(
+            'success',
+            "Nilai akhir {$kelas->nama} berhasil difinalisasi untuk {$mapelList->count()} mata pelajaran yang ditugaskan ({$totalSantri} baris nilai diproses)."
+        );
+    }
+
+    /**
+     * Finalisasi SEMUA kelas + SEMUA mata pelajaran aktif di tahun ajaran berjalan
+     * sekaligus -- dipakai kalau Wakil Kurikulum memang mau "tutup buku" nilai
+     * satu semester penuh dalam satu klik, bukannya kelas-per-kelas atau
+     * mapel-per-mapel.
+     */
+    public function finalizeAll(Request $request)
+    {
+        $ta = TahunAjaran::aktif();
+        abort_if(!$ta, 422, 'Tidak ada tahun ajaran aktif.');
+
+        $kelasList = Kelas::where('tahun_ajaran_id', $ta->id)->get();
+
+        // Sama seperti finalizeKelas() -- per kelas, cuma mapel yang benar
+        // ditugaskan (Penugasan Mengajar), bukan semua mapel aktif sistem.
+        $penugasanPerKelas = PenugasanMengajar::where('tahun_ajaran_id', $ta->id)
+            ->select('kelas_id', 'mata_pelajaran_id')
+            ->distinct()
+            ->get()
+            ->groupBy('kelas_id');
+
+        $totalSantri = 0;
+        $totalKombinasi = 0;
+
+        foreach ($kelasList as $kelas) {
+            $mapelIds = $penugasanPerKelas->get($kelas->id, collect())
+                ->pluck('mata_pelajaran_id')->unique();
+            $mapelList = MataPelajaran::whereIn('id', $mapelIds)->get();
+
+            foreach ($mapelList as $mapel) {
+                $results = $this->penilaianService->hitungNilaiAkhirBulk($kelas, $mapel, $ta);
+                $totalSantri += count($results);
+                $totalKombinasi++;
+            }
+        }
+
+        return back()->with(
+            'success',
+            "Finalisasi selesai untuk {$kelasList->count()} kelas ({$totalKombinasi} kombinasi kelas-mapel yang ditugaskan, {$totalSantri} baris nilai diproses)."
         );
     }
 
@@ -130,9 +253,12 @@ class NilaiController extends Controller
 
         abort_if(! $ta, 422, 'Tidak ada tahun ajaran aktif.');
 
+        $namaKelasFile = str_replace(['/', '\\'], '-', $kelas->nama);
+        $namaMapelFile = str_replace(['/', '\\'], '-', $mataPelajaran->nama);
+
         return Excel::download(
             new NilaiExport($kelas, $mataPelajaran, $ta, $this->penilaianService),
-            "nilai-{$kelas->nama}-{$mataPelajaran->nama}-" . now()->format('Y-m-d') . '.xlsx'
+            "nilai-{$namaKelasFile}-{$namaMapelFile}-" . now()->format('Y-m-d') . '.xlsx'
         );
     }
 
@@ -152,9 +278,12 @@ class NilaiController extends Controller
 
         abort_if(! $ta, 422, 'Tidak ada tahun ajaran aktif.');
 
+        $namaKelasFile = str_replace(['/', '\\'], '-', $kelas->nama);
+        $namaMapelFile = str_replace(['/', '\\'], '-', $mataPelajaran->nama);
+
         return Excel::download(
             new PresensiExport($kelas, $mataPelajaran, $ta, $this->presensiKbmService),
-            "presensi-{$kelas->nama}-{$mataPelajaran->nama}-" . now()->format('Y-m-d') . '.xlsx'
+            "presensi-{$namaKelasFile}-{$namaMapelFile}-" . now()->format('Y-m-d') . '.xlsx'
         );
     }
 }

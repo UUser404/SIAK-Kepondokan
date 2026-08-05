@@ -12,12 +12,29 @@
             </p>
         </div>
         @if($ta)
-        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium border"
-            style="background-color: rgba(35,76,106,0.08);
-                 color: var(--siakad-primary);
-                 border-color: rgba(35,76,106,0.2);">
-            {{ $ta->nama_lengkap }}
-        </span>
+        <div class="flex items-center gap-3">
+            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium border"
+                style="background-color: rgba(35,76,106,0.08);
+                     color: var(--siakad-primary);
+                     border-color: rgba(35,76,106,0.2);">
+                {{ $ta->nama_lengkap }}
+            </span>
+            <form method="POST" action="{{ route('kurikulum.nilai.finalize-all') }}"
+                onsubmit="return confirm('Finalisasi nilai akhir untuk SEMUA kelas & SEMUA mata pelajaran sekaligus? Proses ini bisa memakan waktu beberapa saat kalau datanya banyak.')">
+                @csrf
+                <button type="submit"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl text-white
+                       transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                    style="background-color: var(--siakad-primary);"
+                    onmouseover="this.style.backgroundColor='var(--siakad-dark)'"
+                    onmouseout="this.style.backgroundColor='var(--siakad-primary)'">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Finalisasi Semua Kelas
+                </button>
+            </form>
+        </div>
         @endif
     </div>
 
@@ -62,7 +79,12 @@
 
             <div class="mb-4">
                 <div class="flex justify-between text-xs mb-1.5">
-                    <span class="text-siakad-secondary">Progress nilai akhir</span>
+                    <span class="text-siakad-secondary">
+                        Progress nilai akhir
+                        @if(($prog['total_mapel'] ?? 0) > 0)
+                        ({{ $prog['total_mapel'] }} mapel ditugaskan)
+                        @endif
+                    </span>
                     <span class="font-semibold text-siakad-dark">{{ $prog['persen'] }}%</span>
                 </div>
                 <div class="w-full bg-gray-100 rounded-full h-2">
@@ -71,6 +93,9 @@
                             background-color: {{ $prog['persen'] === 100 ? '#16a34a' : 'var(--siakad-primary)' }}">
                     </div>
                 </div>
+                @if(($prog['total_mapel'] ?? 0) === 0)
+                <p class="text-xs mt-1" style="color:#92400e;">Belum ada guru ditugaskan (Penugasan Mengajar) di kelas ini.</p>
+                @endif
             </div>
 
             <a href="{{ route('kurikulum.nilai.show', ['kelas_id'=>$kelas->id]) }}"
@@ -81,6 +106,20 @@
                 onmouseout="this.style.backgroundColor='transparent'">
                 Lihat Detail Nilai
             </a>
+
+            <form method="POST" action="{{ route('kurikulum.nilai.finalize-kelas') }}" class="mt-2"
+                onsubmit="return confirm('Finalisasi nilai akhir {{ $kelas->nama }} untuk SEMUA mata pelajaran sekaligus?')">
+                @csrf
+                <input type="hidden" name="kelas_id" value="{{ $kelas->id }}">
+                <button type="submit"
+                    class="block w-full text-center py-2 text-xs font-semibold rounded-xl text-white transition
+                       hover:-translate-y-0.5"
+                    style="background-color: var(--siakad-primary);"
+                    onmouseover="this.style.backgroundColor='var(--siakad-dark)'"
+                    onmouseout="this.style.backgroundColor='var(--siakad-primary)'">
+                    Finalisasi Semua Mapel
+                </button>
+            </form>
         </div>
         @empty
         <div class="col-span-3 card-saas p-12 text-center">

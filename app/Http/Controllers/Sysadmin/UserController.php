@@ -52,7 +52,8 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'     => ['required', 'string', 'max:100'],
+            'name'      => ['required', 'string', 'max:100'],
+            'nama_arab' => ['nullable', 'string', 'max:150'],
             'email'    => ['required', 'email', 'unique:users,email'],
             'role'     => ['required', Rule::in(['mudir', 'wakil_kurikulum', 'guru', 'kesantrian', 'admin', 'sysadmin'])],
             'password' => ['required', 'string', 'min:8'],
@@ -60,6 +61,7 @@ class UserController extends Controller
 
         $user = User::create([
             'name'      => $request->name,
+            'nama_arab' => $request->nama_arab,
             'email'     => $request->email,
             'password'  => Hash::make($request->password),
             'role'      => $request->role,
@@ -81,13 +83,14 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $request->validate([
-            'name'  => ['required', 'string', 'max:100'],
+            'name'      => ['required', 'string', 'max:100'],
+            'nama_arab' => ['nullable', 'string', 'max:150'],
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
             'role'  => ['required', Rule::in(['mudir', 'wakil_kurikulum', 'guru', 'kesantrian', 'admin', 'sysadmin'])],
         ]);
 
         $old = $user->toArray();
-        $user->update(['name' => $request->name, 'email' => $request->email, 'role' => $request->role]);
+        $user->update(['name' => $request->name, 'nama_arab' => $request->nama_arab, 'email' => $request->email, 'role' => $request->role]);
 
         if ($request->filled('password')) {
             $request->validate(['password' => ['string', 'min:8']]);

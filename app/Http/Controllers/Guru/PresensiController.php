@@ -16,8 +16,32 @@ use Illuminate\Support\Facades\DB;
 class PresensiController extends Controller
 {
     /**
+     * Cek apakah guru yang login sekarang punya penugasan aktif (TA berjalan)
+     * untuk kombinasi kelas+mapel ini. Dipakai buat akses lihat/edit pertemuan
+     * ORANG LAIN juga (bukan cuma yang dia buat sendiri) -- disamakan dengan
+     * cara kerja modul Nilai: kepemilikan itu di level kelas+mapel (lewat
+     * PenugasanMengajar yang sedang aktif), BUKAN di level "siapa yang input".
+     * Kalau penugasan berubah di tengah semester (Guru A -> Guru B), guru yang
+     * baru otomatis bisa lihat & lanjutin/koreksi jurnal-presensi guru
+     * sebelumnya untuk kelas+mapel yang sama.
+     */
+    private function guruBolehAkses(int $kelasId, int $mapelId): bool
+    {
+        if (Auth::user()->isManajemen()) return true;
+
+        $ta = TahunAjaran::aktif();
+
+        return PenugasanMengajar::where('guru_id', Auth::id())
+            ->where('kelas_id', $kelasId)
+            ->where('mata_pelajaran_id', $mapelId)
+            ->when($ta, fn($q) => $q->where('tahun_ajaran_id', $ta->id))
+            ->exists();
+    }
+
+    /**
      * Daftar kelas & mapel yang diampu guru ini (dari Penugasan Mengajar Kurikulum)
-     * + riwayat pertemuan yang sudah diinput.
+     * + riwayat pertemuan yang sudah diinput -- termasuk yang diinput guru
+     * sebelumnya untuk kelas+mapel yang sama (lihat guruBolehAkses()).
      */
     public function index()
     {
@@ -31,17 +55,27 @@ class PresensiController extends Controller
             ->get();
 
         // Tandai kapan terakhir kali masing-masing kelas-mapel diinput presensinya
-        $penugasanList->each(function ($penugasan) use ($user) {
-            $penugasan->pertemuan_terakhir = Pertemuan::where('guru_id', $user->id)
-                ->where('kelas_id', $penugasan->kelas_id)
+        // -- dicek dari SEMUA guru yang pernah input (bukan cuma guru ini),
+        // supaya kalau ada pergantian pengampu, "terakhir diinput" tetap akurat.
+        $penugasanList->each(function ($penugasan) {
+            $penugasan->pertemuan_terakhir = Pertemuan::where('kelas_id', $penugasan->kelas_id)
                 ->where('mata_pelajaran_id', $penugasan->mata_pelajaran_id)
                 ->orderByDesc('tanggal')
                 ->first();
         });
 
-        // Riwayat pertemuan (10 terakhir)
-        $riwayat = Pertemuan::where('guru_id', $user->id)
-            ->with(['mataPelajaran', 'kelas', 'presensiKbm'])
+        // Riwayat pertemuan (10 terakhir) -- gabungan semua kelas+mapel yang
+        // ditugaskan ke guru ini, termasuk pertemuan yang diinput guru
+        // sebelumnya (kalau ada pergantian penugasan di tengah jalan).
+        $kombinasi = $penugasanList->map(fn($p) => [$p->kelas_id, $p->mata_pelajaran_id]);
+        $riwayat = Pertemuan::where(function ($q) use ($kombinasi) {
+            foreach ($kombinasi as [$kelasId, $mapelId]) {
+                $q->orWhere(function ($q2) use ($kelasId, $mapelId) {
+                    $q2->where('kelas_id', $kelasId)->where('mata_pelajaran_id', $mapelId);
+                });
+            }
+        })
+            ->with(['mataPelajaran', 'kelas', 'presensiKbm', 'guru'])
             ->orderByDesc('tanggal')
             ->limit(10)
             ->get();
@@ -67,9 +101,9 @@ class PresensiController extends Controller
             ->get()
             ->sortBy('santri.nama_lengkap');
 
-        // Hitung pertemuan ke-n untuk kombinasi guru+kelas+mapel ini
-        $pertemuanKe = Pertemuan::where('guru_id', $penugasan->guru_id)
-            ->where('kelas_id', $penugasan->kelas_id)
+        // Hitung pertemuan ke-n untuk kombinasi kelas+mapel ini (lintas guru --
+        // supaya penomoran tetap nyambung kalau pengampu berganti di tengah semester)
+        $pertemuanKe = Pertemuan::where('kelas_id', $penugasan->kelas_id)
             ->where('mata_pelajaran_id', $penugasan->mata_pelajaran_id)
             ->count() + 1;
 
@@ -103,17 +137,18 @@ class PresensiController extends Controller
         $penugasan = PenugasanMengajar::findOrFail($request->penugasan_id);
         abort_if($penugasan->guru_id !== Auth::id(), 403);
 
-        // Cek duplikat: kelas+mapel+guru yang sama, tanggal yang sama
-        $exists = Pertemuan::where('guru_id', $penugasan->guru_id)
-            ->where('kelas_id', $penugasan->kelas_id)
+        // Cek duplikat: kelas+mapel yang sama (lintas guru), tanggal yang sama --
+        // supaya 2 guru berbeda (mis. sebelum & sesudah pergantian penugasan)
+        // tidak bisa sama-sama input "pertemuan" ganda di tanggal yang sama
+        // untuk kelas+mapel yang sama.
+        $exists = Pertemuan::where('kelas_id', $penugasan->kelas_id)
             ->where('mata_pelajaran_id', $penugasan->mata_pelajaran_id)
             ->whereDate('tanggal', $request->tanggal)
             ->exists();
         abort_if($exists, 422, 'Presensi untuk kelas & mapel ini pada tanggal tersebut sudah diinput.');
 
         $pertemuan = DB::transaction(function () use ($request, $penugasan) {
-            $pertemuanKe = Pertemuan::where('guru_id', $penugasan->guru_id)
-                ->where('kelas_id', $penugasan->kelas_id)
+            $pertemuanKe = Pertemuan::where('kelas_id', $penugasan->kelas_id)
                 ->where('mata_pelajaran_id', $penugasan->mata_pelajaran_id)
                 ->count() + 1;
 
@@ -157,12 +192,13 @@ class PresensiController extends Controller
      */
     public function show(Pertemuan $pertemuan)
     {
-        abort_if($pertemuan->guru_id !== Auth::id() && !Auth::user()->isManajemen(), 403);
+        abort_if(!$this->guruBolehAkses($pertemuan->kelas_id, $pertemuan->mata_pelajaran_id), 403);
 
         $pertemuan->load([
             'mataPelajaran',
             'kelas',
             'presensiKbm.santri',
+            'guru',
         ]);
 
         $rekap = [
@@ -180,7 +216,7 @@ class PresensiController extends Controller
      */
     public function edit(Pertemuan $pertemuan)
     {
-        abort_if($pertemuan->guru_id !== Auth::id(), 403);
+        abort_if(!$this->guruBolehAkses($pertemuan->kelas_id, $pertemuan->mata_pelajaran_id), 403);
 
         $ta = TahunAjaran::aktif();
 
@@ -206,7 +242,7 @@ class PresensiController extends Controller
      */
     public function update(Request $request, Pertemuan $pertemuan)
     {
-        abort_if($pertemuan->guru_id !== Auth::id(), 403);
+        abort_if(!$this->guruBolehAkses($pertemuan->kelas_id, $pertemuan->mata_pelajaran_id), 403);
 
         $request->validate([
             'topik'        => ['nullable', 'string', 'max:200'],
@@ -244,7 +280,7 @@ class PresensiController extends Controller
      */
     public function destroy(Pertemuan $pertemuan)
     {
-        abort_if($pertemuan->guru_id !== Auth::id(), 403);
+        abort_if(!$this->guruBolehAkses($pertemuan->kelas_id, $pertemuan->mata_pelajaran_id), 403);
 
         DB::transaction(function () use ($pertemuan) {
             PresensiKbm::where('pertemuan_id', $pertemuan->id)->delete();

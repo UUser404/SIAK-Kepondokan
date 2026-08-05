@@ -60,6 +60,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // "Missing required parameter [mapel]" saat diklik dari halaman index. Diperbaiki jadi path polos.
         Route::get('nilai/detail', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'show'])->name('nilai.show');
         Route::post('nilai/finalize', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'finalize'])->name('nilai.finalize');
+        Route::post('nilai/finalize-kelas', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'finalizeKelas'])->name('nilai.finalize-kelas');
+        Route::post('nilai/finalize-semua', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'finalizeAll'])->name('nilai.finalize-all');
         // FR-14: export nilai & presensi ke Excel (kelas_id & mapel_id dikirim sebagai query string)
         Route::get('nilai/export', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'exportNilai'])->name('nilai.export');
         Route::get('presensi/export', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'exportPresensi'])->name('presensi.export');
@@ -68,6 +70,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('rapor', [\App\Http\Controllers\Kurikulum\RaporController::class, 'index'])->name('rapor.index');
         Route::get('rapor/{santri}', [\App\Http\Controllers\Kurikulum\RaporController::class, 'show'])->name('rapor.show');
         Route::get('rapor/{santri}/cetak', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetak'])->name('rapor.cetak');
+        Route::get('rapor/{santri}/cetak-arab', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetakArab'])->name('rapor.cetak-arab');
 
         // AI Advisor
         Route::get('ai-advisor', [\App\Http\Controllers\AiAdvisorController::class, 'index'])->name('ai.index');
@@ -114,7 +117,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Predikat Sikap
         Route::get('predikat-sikap/{kelas}', [\App\Http\Controllers\WaliKelas\PredikatSikapController::class, 'index'])->name('predikat-sikap.index');
         Route::post('predikat-sikap/{kelas}', [\App\Http\Controllers\WaliKelas\PredikatSikapController::class, 'store'])->name('predikat-sikap.store');
-        Route::post('predikat-sikap/{kelas}/hitung-kedisiplinan', [\App\Http\Controllers\WaliKelas\PredikatSikapController::class, 'hitungKedisiplinan'])->name('predikat-sikap.hitung-kedisiplinan');
 
         // Nilai Ekstrakurikuler
         Route::get('nilai-ekstrakurikuler/{kelas}', [\App\Http\Controllers\WaliKelas\NilaiEkstrakurikulerController::class, 'index'])->name('nilai-ekstrakurikuler.index');
@@ -124,6 +126,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('rapor', [\App\Http\Controllers\Kurikulum\RaporController::class, 'index'])->name('rapor.index');
         Route::get('rapor/{santri}', [\App\Http\Controllers\Kurikulum\RaporController::class, 'show'])->name('rapor.show');
         Route::get('rapor/{santri}/cetak', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetak'])->name('rapor.cetak');
+        Route::get('rapor/{santri}/cetak-arab', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetakArab'])->name('rapor.cetak-arab');
     });
 
     // ==========================================
@@ -175,9 +178,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
 
         // Data Santri
-        Route::resource('santri', \App\Http\Controllers\Admin\SantriController::class);
+        // PENTING: route literal (export, import-*, {santri}/profil) HARUS didaftarkan
+        // SEBELUM Route::resource() -- resource bikin GET santri/{santri} (wildcard
+        // 1-segmen) yang kalau didaftarkan duluan akan "menangkap" request ke
+        // santri/export, santri/import-bulk, dst (dianggap {santri}="export" dst),
+        // gagal ketemu model, jadi 404. Ini pernah jadi bug nyata -- jangan diubah
+        // urutannya lagi tanpa alasan kuat.
         Route::get('santri/export', [\App\Http\Controllers\Admin\SantriController::class, 'export'])->name('santri.export');
+        Route::get('santri/import-template', [\App\Http\Controllers\Admin\SantriController::class, 'importTemplate'])->name('santri.import-template');
+        Route::get('santri/import-bulk', [\App\Http\Controllers\Admin\SantriController::class, 'importBulk'])->name('santri.import-bulk');
+        Route::post('santri/import-bulk/preview', [\App\Http\Controllers\Admin\SantriController::class, 'previewBulk'])->name('santri.import-bulk.preview');
+        Route::post('santri/import-bulk/store', [\App\Http\Controllers\Admin\SantriController::class, 'storeBulk'])->name('santri.import-bulk.store');
         Route::get('santri/{santri}/profil', [\App\Http\Controllers\Admin\SantriController::class, 'profil'])->name('santri.profil');
+        Route::resource('santri', \App\Http\Controllers\Admin\SantriController::class);
 
         // Tenaga Pendidik
         Route::resource('pendidik', \App\Http\Controllers\Admin\PendidikController::class);
@@ -187,6 +200,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [\App\Http\Controllers\Admin\TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
         Route::resource('tingkatan', \App\Http\Controllers\Admin\TingkatanController::class)->except(['show']);
         Route::resource('mata-pelajaran', \App\Http\Controllers\Admin\MataPelajaranController::class);
+        Route::get('kkm', [\App\Http\Controllers\Admin\KkmController::class, 'index'])->name('kkm.index');
+        Route::post('kkm', [\App\Http\Controllers\Admin\KkmController::class, 'store'])->name('kkm.store');
         Route::resource('ekstrakurikuler', \App\Http\Controllers\Admin\EkstrakurikulerController::class);
         Route::resource('komponen-nilai', \App\Http\Controllers\Admin\KomponenNilaiController::class);
 
@@ -257,7 +272,7 @@ Route::middleware('guest')->get('/simaq/login', function () {
     // Trik Cerdas: Beritahu sistem bahwa setelah login sukses, 
     // user HARUS diarahkan ke Dashboard SIMAQ, bukan Dashboard SIAK.
     session(['url.intended' => route('simaq.dashboard')]);
-    
+
     return view('simaq.login');
 })->name('simaq.login');
 

@@ -64,6 +64,7 @@
             ['name'=>'nis', 'label'=>'NIS', 'required'=>true, 'type'=>'text', 'placeholder'=>'Nomor Induk Santri', 'col'=>1],
             ['name'=>'nisn', 'label'=>'NISN', 'required'=>false, 'type'=>'text', 'placeholder'=>'10 digit (opsional)', 'col'=>1],
             ['name'=>'nama_lengkap', 'label'=>'Nama Lengkap', 'required'=>true, 'type'=>'text', 'placeholder'=>'Nama sesuai akta lahir','col'=>2],
+            ['name'=>'nama_arab', 'label'=>'Nama (Arab)', 'required'=>false, 'type'=>'text', 'placeholder'=>'مثال: أحمد بفاقه — dipakai di Rapor/Leger', 'col'=>2],
             ['name'=>'nama_panggilan','label'=>'Nama Panggilan', 'required'=>false, 'type'=>'text', 'placeholder'=>'Nama sehari-hari', 'col'=>1],
             ['name'=>'tempat_lahir', 'label'=>'Tempat Lahir', 'required'=>false, 'type'=>'text', 'placeholder'=>'Kota/Kabupaten', 'col'=>1],
             ['name'=>'tanggal_lahir', 'label'=>'Tanggal Lahir', 'required'=>false, 'type'=>'date', 'placeholder'=>'', 'col'=>1],

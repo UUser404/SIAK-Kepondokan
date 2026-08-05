@@ -4,13 +4,17 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\SantriExport;
 use App\Http\Controllers\Controller;
+use App\Imports\SantriKelasAsramaImport;
+use App\Models\Asrama;
 use App\Models\Kelas;
 use App\Models\Santri;
 use App\Models\SantriKelas;
 use App\Models\TahunAjaran;
 use App\Services\ActivityLogService;
+use App\Services\SantriImportService;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Validators\ValidationException;
 
 class SantriController extends Controller
 {
@@ -68,6 +72,7 @@ class SantriController extends Controller
             'nis'           => ['required', 'string', 'unique:santri,nis'],
             'nisn'          => ['nullable', 'string', 'unique:santri,nisn'],
             'nama_lengkap'  => ['required', 'string', 'max:100'],
+            'nama_arab'     => ['nullable', 'string', 'max:150'],
             'tempat_lahir'  => ['required', 'string', 'max:100'],
             'tanggal_lahir' => ['required', 'date'],
             'jenis_kelamin' => ['required', 'in:L,P'],
@@ -133,6 +138,7 @@ class SantriController extends Controller
             'nis'           => ['required', 'string', 'unique:santri,nis,' . $santri->id],
             'nisn'          => ['nullable', 'string', 'unique:santri,nisn,' . $santri->id],
             'nama_lengkap'  => ['required', 'string', 'max:100'],
+            'nama_arab'     => ['nullable', 'string', 'max:150'],
             'tempat_lahir'  => ['required', 'string', 'max:100'],
             'tanggal_lahir' => ['required', 'date'],
             'jenis_kelamin' => ['required', 'in:L,P'],
@@ -184,5 +190,112 @@ class SantriController extends Controller
             new SantriExport($filters),
             'data-santri-' . now()->format('Y-m-d_His') . '.xlsx'
         );
+    }
+
+    /**
+     * Download template Excel kosong (header + 1 baris contoh) untuk fitur
+     * import kelas & asrama massal.
+     */
+    public function importTemplate()
+    {
+        return Excel::download(
+            new \App\Exports\SantriImportTemplateExport(),
+            'template-import-santri.xlsx'
+        );
+    }
+
+    /**
+     * Tampilkan form untuk bulk import kelas & asrama
+     */
+    public function importBulk()
+    {
+        $ta = TahunAjaran::aktif();
+
+        if (!$ta) {
+            return redirect()->route('admin.santri.index')
+                ->with('error', 'Belum ada Tahun Ajaran aktif. Aktifkan Tahun Ajaran dulu sebelum import kelas & asrama.');
+        }
+
+        // Kelas untuk TA aktif ini -- kalau kosong, import "Kelas" pasti gagal
+        // semua karena tidak ada yang bisa dicocokkan. Kasih peringatan di awal
+        // supaya admin bikin kelasnya dulu, bukan ketemu error satu-satu di preview.
+        $jumlahKelasTaAktif = Kelas::where('tahun_ajaran_id', $ta->id)->count();
+
+        return view('santri.import-bulk', compact('ta', 'jumlahKelasTaAktif'));
+    }
+
+    /**
+     * Handle preview data sebelum save
+     */
+    public function previewBulk(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        $ta = TahunAjaran::aktif();
+        if (!$ta) {
+            return back()->withErrors(['file' => 'Belum ada Tahun Ajaran aktif.']);
+        }
+
+        try {
+            // Parse Excel file
+            $rows = Excel::toCollection(
+                new SantriKelasAsramaImport(),
+                $request->file('file')
+            )->flatten(1);
+
+            // Convert Collection to array
+            $rowsArray = $rows->map(function ($row) {
+                return $row->toArray();
+            })->toArray();
+
+            // Validate dan prepare preview
+            $importService = new SantriImportService($ta);
+            $preview = $importService->validateAndPrepare($rowsArray);
+
+            // Simpan preview data ke session untuk digunakan saat save
+            $request->session()->put('santri_import_preview', $preview);
+
+            return view('santri.import-preview', compact('preview', 'ta'));
+        } catch (ValidationException $e) {
+            return back()->withErrors(['file' => 'File Excel tidak valid: ' . $e->getMessage()]);
+        } catch (\Exception $e) {
+            return back()->withErrors(['file' => 'Error membaca file: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Simpan data setelah preview dikonfirmasi
+     */
+    public function storeBulk(Request $request)
+    {
+        $preview = $request->session()->get('santri_import_preview');
+
+        if (!$preview) {
+            return redirect()->route('admin.santri.import-bulk')
+                ->withErrors(['message' => 'Session preview telah expired, silakan upload ulang']);
+        }
+
+        // Parse approval dari form (row_index => 'approve' or 'reject' or 'skip')
+        $approvals = [];
+        foreach ($preview['records'] as $index => $record) {
+            $approvals[$index] = $request->input("action_{$index}", 'approve');
+        }
+
+        try {
+            $ta = TahunAjaran::aktif();
+            $importService = new SantriImportService($ta);
+            $results = $importService->save($approvals, $preview);
+
+            // Clear session
+            $request->session()->forget('santri_import_preview');
+
+            return redirect()->route('admin.santri.index')
+                ->with('success', "Bulk import selesai: {$results['success']} berhasil, {$results['skipped']} skip, {$results['failed']} gagal")
+                ->with('messages', $results['messages']);
+        } catch (\Exception $e) {
+            return back()->withErrors(['message' => 'Error saat menyimpan data: ' . $e->getMessage()]);
+        }
     }
 }

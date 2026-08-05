@@ -12,12 +12,15 @@ use App\Models\TahunAjaran;
 use App\Models\MataPelajaran;
 use App\Models\PresensiKbm;
 use App\Models\Pertemuan;
+use App\Services\RaporArabService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class RaporController extends Controller
 {
+    public function __construct(private RaporArabService $raporArabService) {}
+
     /**
      * Guard akses: Wakil Kurikulum/Sysadmin bebas akses semua kelas/santri.
      * Kalau yang akses seorang guru (Wali Kelas), batasi hanya untuk santri
@@ -162,6 +165,34 @@ class RaporController extends Controller
             'ta'
         ))->setPaper('a4', 'portrait');
 
-        return $pdf->download("rapor-{$santri->nis}-{$ta?->nama}.pdf");
+        $namaFileTa = str_replace(['/', '\\'], '-', $ta?->nama ?? 'ta');
+
+        return $pdf->download("rapor-{$santri->nis}-{$namaFileTa}.pdf");
+    }
+
+    /**
+     * Rapor Arab (2 halaman, format KMI) -- BELUM DITEST render Arabnya di
+     * DomPDF (barryvdh/laravel-dompdf biasa). Kalau huruf Arab keluar
+     * terputus-putus/tidak tersambung, itu keterbatasan DomPDF standar --
+     * lihat catatan di DEVELOPER_GUIDE.md soal opsi pindah ke omaralalwi/gpdf.
+     */
+    public function cetakArab(Santri $santri)
+    {
+        $ta = TahunAjaran::aktif();
+        $this->authorizeSantri($santri, $ta);
+        abort_if(!$ta, 422, 'Tidak ada tahun ajaran aktif.');
+
+        $santri->load(['santriKelas.kelas.tingkatan']);
+        $kelasAktif = $santri->santriKelas->where('status', 'aktif')->first()?->kelas;
+        abort_if(!$kelasAktif, 422, 'Santri ini belum punya penempatan kelas aktif.');
+
+        $data = $this->raporArabService->rakit($santri, $kelasAktif, $ta);
+
+        $pdf = Pdf::loadView('rapor.cetak-arab-pdf', compact('data'))
+            ->setPaper('a4', 'portrait');
+
+        $namaFileTa = str_replace(['/', '\\'], '-', $ta->nama);
+
+        return $pdf->download("rapor-arab-{$santri->nis}-{$namaFileTa}.pdf");
     }
 }

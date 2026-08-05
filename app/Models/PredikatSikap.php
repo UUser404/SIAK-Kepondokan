@@ -19,8 +19,11 @@ class PredikatSikap extends Model
         'tahun_ajaran_id',
         'kedisiplinan',
         'kebersihan',
-        'kerapihan',
+        'kerajinan',
         'akhlak',
+        'sakit_override',
+        'izin_override',
+        'alpa_override',
         'catatan_wali_kelas',
         'diinput_oleh',
     ];

@@ -36,6 +36,7 @@ class MataPelajaranController extends Controller
         $validated = $request->validate([
             'kode'      => ['required', 'string', 'max:20', 'unique:mata_pelajaran,kode'],
             'nama'      => ['required', 'string', 'max:100'],
+            'kategori'  => ['nullable', 'string', 'max:100'],
             'tingkat'   => ['required', 'string', 'max:20'],
             'kkm'       => ['nullable', 'integer', 'min:0', 'max:100'],
             'deskripsi' => ['nullable', 'string', 'max:500'],
@@ -72,6 +73,7 @@ class MataPelajaranController extends Controller
                 Rule::unique('mata_pelajaran', 'kode')->ignore($mataPelajaran->id)
             ],
             'nama'      => ['required', 'string', 'max:100'],
+            'kategori'  => ['nullable', 'string', 'max:100'],
             'tingkat'   => ['required', 'string', 'max:20'],
             'kkm'       => ['nullable', 'integer', 'min:0', 'max:100'],
             'deskripsi' => ['nullable', 'string', 'max:500'],

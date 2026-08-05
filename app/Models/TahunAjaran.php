@@ -18,6 +18,9 @@ class TahunAjaran extends Model
         'semester',
         'tanggal_mulai',
         'tanggal_selesai',
+        'tanggal_rapor_hijriah',
+        'nama_kepala_sekolah_arab',
+        'nama_mudir_arab',
         'is_active',
     ];
 

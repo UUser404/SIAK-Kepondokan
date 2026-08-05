@@ -31,6 +31,9 @@ class TahunAjaranController extends Controller
             'semester'        => ['required', Rule::in(['ganjil', 'genap'])],
             'tanggal_mulai'   => ['required', 'date'],
             'tanggal_selesai' => ['required', 'date', 'after:tanggal_mulai'],
+            'tanggal_rapor_hijriah' => ['nullable', 'string', 'max:50'],
+            'nama_kepala_sekolah_arab' => ['nullable', 'string', 'max:150'],
+            'nama_mudir_arab' => ['nullable', 'string', 'max:150'],
         ], [
             'nama.regex'      => 'Format tahun ajaran harus YYYY/YYYY (contoh: 2025/2026)',
         ]);
@@ -54,6 +57,9 @@ class TahunAjaranController extends Controller
             'semester'        => ['required', Rule::in(['ganjil', 'genap'])],
             'tanggal_mulai'   => ['required', 'date'],
             'tanggal_selesai' => ['required', 'date', 'after:tanggal_mulai'],
+            'tanggal_rapor_hijriah' => ['nullable', 'string', 'max:50'],
+            'nama_kepala_sekolah_arab' => ['nullable', 'string', 'max:150'],
+            'nama_mudir_arab' => ['nullable', 'string', 'max:150'],
         ]);
 
         $old = $tahunAjaran->toArray();

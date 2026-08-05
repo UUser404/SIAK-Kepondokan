@@ -63,13 +63,17 @@ class JadwalController extends Controller
             'ruangan'           => ['nullable', 'string', 'max:50'],
         ]);
 
-        // FITUR BARU: Proteksi cek bentrok jadwal mengajar guru pada hari & jam yang sama
+        // FIX: whereBetween di jam_mulai/jam_selesai cuma nangkep 2 dari 3 kasus overlap
+        // -- kalau jadwal baru itu sepenuhnya "nested" di DALAM jadwal lama yang lebih
+        // panjang (mis. lama 07:00-10:00, baru 08:00-09:00), jam_mulai & jam_selesai
+        // punya jadwal lama itu keduanya di LUAR rentang baru, jadi lolos tanpa
+        // terdeteksi bentrok. Overlap interval yang benar: existing.mulai < baru.selesai
+        // DAN existing.selesai > baru.mulai.
         $bentrok = JadwalPelajaran::where('guru_id', $validated['guru_id'])
             ->where('hari', $validated['hari'])
-            ->where(function ($q) use ($validated) {
-                $q->whereBetween('jam_mulai', [$validated['jam_mulai'], $validated['jam_selesai']])
-                    ->orWhereBetween('jam_selesai', [$validated['jam_mulai'], $validated['jam_selesai']]);
-            })->exists();
+            ->where('jam_mulai', '<', $validated['jam_selesai'])
+            ->where('jam_selesai', '>', $validated['jam_mulai'])
+            ->exists();
 
         if ($bentrok) {
             return back()->withInput()->with('error', 'Guru yang bersangkutan sudah memiliki jadwal mengajar lain di waktu tersebut.');
@@ -111,14 +115,14 @@ class JadwalController extends Controller
             'ruangan'           => ['nullable', 'string', 'max:50'],
         ]);
 
-        // FITUR BARU: Cek bentrok dengan mengabaikan ID jadwal ini sendiri saat update
+        // FIX: sama seperti store() -- overlap interval yang benar, bukan whereBetween
+        // titik awal/akhir doang (lihat catatan lengkap di method store()).
         $bentrok = JadwalPelajaran::where('guru_id', $validated['guru_id'])
             ->where('id', '!=', $jadwal->id)
             ->where('hari', $validated['hari'])
-            ->where(function ($q) use ($validated) {
-                $q->whereBetween('jam_mulai', [$validated['jam_mulai'], $validated['jam_selesai']])
-                    ->orWhereBetween('jam_selesai', [$validated['jam_mulai'], $validated['jam_selesai']]);
-            })->exists();
+            ->where('jam_mulai', '<', $validated['jam_selesai'])
+            ->where('jam_selesai', '>', $validated['jam_mulai'])
+            ->exists();
 
         if ($bentrok) {
             return back()->withInput()->with('error', 'Guru yang bersangkutan sudah memiliki jadwal mengajar lain di waktu tersebut.');
