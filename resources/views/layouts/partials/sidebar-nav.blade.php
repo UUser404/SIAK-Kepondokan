@@ -363,3 +363,30 @@ $active = fn(string $prefix) => str_starts_with($current, $prefix)
 @endforeach
 
 @endif
+
+{{-- ==================== SIMAQ (TAHFIZH) ==================== --}}
+@if(Auth::user()->hasRole(['guru_tahsin_tahfizh', 'admin', 'super_admin']) || $role === 'guru_tahsin_tahfizh')
+
+<div class="pt-4 pb-1">
+    <p class="px-3 text-[10px] font-semibold uppercase tracking-widest sidebar-section-title"
+        style="color: var(--text-secondary); opacity: 0.6;">SIMAQ - Tahfizh</p>
+</div>
+
+@foreach([
+    ['route'=>'simaq.dashboard', 'prefix'=>'simaq.dashboard', 'label'=>'Dashboard SIMAQ', 'icon'=>'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'],
+    ['route'=>'simaq.harian.index', 'prefix'=>'simaq.harian', 'label'=>'Setoran Harian', 'icon'=>'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'],
+    ['route'=>'simaq.pemantapan.index', 'prefix'=>'simaq.pemantapan', 'label'=>'Ujian Pemantapan', 'icon'=>'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'],
+    ['route'=>'simaq.tasmi.index', 'prefix'=>'simaq.tasmi', 'label'=>'Imtihan Tasmi\'', 'icon'=>'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z'],
+    ['route'=>'simaq.huffazh.index', 'prefix'=>'simaq.huffazh', 'label'=>'J. Huffazh', 'icon'=>'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z'],
+] as $item)
+<a href="{{ route($item['route']) }}"
+    class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active($item['prefix']) }}"
+    style="color: var(--text-secondary);">
+    <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="{{ $item['icon'] }}" />
+    </svg>
+    <span class="sidebar-text">{{ $item['label'] }}</span>
+</a>
+@endforeach
+
+@endif
