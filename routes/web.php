@@ -199,6 +199,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('tahun-ajaran', \App\Http\Controllers\Admin\TahunAjaranController::class);
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [\App\Http\Controllers\Admin\TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
         Route::resource('tingkatan', \App\Http\Controllers\Admin\TingkatanController::class)->except(['show']);
+        Route::resource('kategori-mata-pelajaran', \App\Http\Controllers\Admin\KategoriMataPelajaranController::class)->except(['show']);
         Route::resource('mata-pelajaran', \App\Http\Controllers\Admin\MataPelajaranController::class);
         Route::get('kkm', [\App\Http\Controllers\Admin\KkmController::class, 'index'])->name('kkm.index');
         Route::post('kkm', [\App\Http\Controllers\Admin\KkmController::class, 'store'])->name('kkm.store');

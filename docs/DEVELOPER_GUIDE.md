@@ -1,3 +1,10 @@
+# ✅ Full `DEVELOPER_GUIDE.md` dengan Perubahan Terbaru
+
+Berikut adalah file lengkap `DEVELOPER_GUIDE.md` yang sudah diperbarui dengan **Riwayat & Catatan Perbaikan** poin 15 tentang Rapor Arab:
+
+---
+
+````markdown
 # Developer & AI Agent Guide — SIAK-AI Kepondokan
 
 > **Tujuan dokumen ini:** referensi teknis lengkap supaya developer manusia maupun AI coding agent (Claude Code, dsb.) bisa langsung paham arsitektur sistem ini tanpa perlu membaca ulang seluruh kode dari nol — termasuk keputusan desain yang **sengaja menyimpang** dari dokumen SRS awal, dan bug-bug yang **sudah pernah ditemukan & diperbaiki** (supaya tidak diperbaiki ulang atau, lebih buruk, diperkenalkan lagi).
@@ -38,12 +45,15 @@ Sistem ini bermula dari dokumen **System Requirement Specification (SRS)** forma
 ## Arsitektur & RBAC
 
 ### Stack
+
 Laravel 13, PHP 8.3+, Blade + TailwindCSS (bukan SPA/API-first), MySQL/PostgreSQL/SQLite.
 
 ### 6 Role
+
 `sysadmin`, `mudir`, `wakil_kurikulum`, `guru`, `kesantrian`, `admin` — disimpan di kolom `users.role` (string tunggal).
 
 ### RBAC Ganda (Sengaja, Bukan Bug)
+
 Sistem punya **dua mekanisme role** yang berjalan bersamaan:
 
 1. **`users.role`** (string) — dipakai untuk routing dashboard (`getDashboardRoute()`), helper cepat (`$user->isGuru()`, dst), dan ditampilkan di UI.
@@ -52,7 +62,9 @@ Sistem punya **dua mekanisme role** yang berjalan bersamaan:
 Kedua mekanisme ini **disinkronkan manual** setiap kali user dibuat/diedit lewat `Sysadmin\UserController` (`$user->role = ...` **dan** `$user->syncRoles([...])` dipanggil bersamaan). Kalau menambah cara baru untuk membuat/mengedit user (mis. seeder baru, import massal), **wajib** sinkronkan keduanya, atau middleware `role:` akan gagal mendeteksi akses meski `users.role` sudah benar.
 
 ### Struktur Route
+
 Semua route di `routes/web.php`, dikelompokkan per prefix + middleware role:
+
 ```php
 Route::prefix('admin')->name('admin.')->middleware('role:admin|sysadmin')->group(...);
 Route::prefix('kurikulum')->name('kurikulum.')->middleware('role:wakil_kurikulum|sysadmin')->group(...);
@@ -60,6 +72,7 @@ Route::prefix('guru')->name('guru.')->middleware('role:guru')->group(...);
 Route::prefix('kesantrian')->name('kesantrian.')->middleware('role:kesantrian|sysadmin')->group(...);
 Route::prefix('sysadmin')->name('sysadmin.')->middleware('role:sysadmin')->group(...);
 ```
+````
 
 ⚠️ **Jangan pakai `Route::resource()` untuk controller yang tidak punya ke-7 method standarnya** (`index/create/store/show/edit/update/destroy`). Ini sudah dua kali jadi sumber bug ("ghost route" — route terdaftar tapi controller-nya tidak punya method itu, jadi 500 error kalau diakses). Lihat [§9](#riwayat--catatan-perbaikan) poin PPDB & Kamar.
 
@@ -70,6 +83,7 @@ Route::prefix('sysadmin')->name('sysadmin.')->middleware('role:sysadmin')->group
 Ini **aturan akses paling penting** di seluruh sistem — banyak modul bergantung padanya.
 
 ### Model: `PenugasanMengajar`
+
 ```
 penugasan_mengajar
 - guru_id            (FK users.id)
@@ -80,12 +94,14 @@ penugasan_mengajar
 ```
 
 **Cara kerja (dari sisi Kurikulum):**
+
 1. Wakil Kurikulum buka menu **Penugasan** (`kurikulum.penugasan.*`), pilih guru.
 2. Pilih **1 mata pelajaran**, centang **kelas mana saja** yang diampu guru itu untuk mapel tersebut (boleh banyak kelas sekaligus).
 3. Simpan → sistem generate satu baris `PenugasanMengajar` per kelas yang dicentang.
 4. Ulangi langkah 2-3 kalau guru itu juga mengampu mapel lain.
 
 **Cara kerja (dari sisi Guru):** guru **tidak bisa** input presensi, nilai, atau jurnal untuk kelas+mapel manapun **kecuali** ada baris `PenugasanMengajar` yang cocok (`guru_id` + `kelas_id` + `mata_pelajaran_id`). Ini ditegakkan di:
+
 - `Guru\NilaiController::show()` / `bulkStore()` — `PenugasanMengajar::where(...)->firstOrFail()`
 - `Guru\PresensiController::create()` — route model binding ke `PenugasanMengajar`, plus `abort_if($penugasan->guru_id !== Auth::id(), 403)`
 
@@ -98,6 +114,7 @@ penugasan_mengajar
 Kalau suatu saat fitur jadwal hari/jam mau diaktifkan lagi: kodenya utuh di `Kurikulum\JadwalController` + route `kurikulum.jadwal.*` (cuma di-comment dari sidebar `resources/views/layouts/partials/sidebar-nav.blade.php`), tapi **jangan otomatis jadikan gerbang akses lagi** tanpa didiskusikan — itu perubahan arsitektur, bukan sekadar toggle UI.
 
 ### Dampak Berantai
+
 Karena `Pertemuan` (dasar Presensi & Jurnal) awalnya **wajib** referensi `jadwal_pelajaran_id` (NOT NULL constraint), migrasi `2025_02_01_000001_create_penugasan_mengajar_table.php` mengubahnya jadi **nullable**. Pertemuan baru dibuat dengan `jadwal_pelajaran_id => null`, data lama (kalau ada) tetap utuh.
 
 ---
@@ -105,6 +122,7 @@ Karena `Pertemuan` (dasar Presensi & Jurnal) awalnya **wajib** referensi `jadwal
 ## Sistem Penilaian
 
 ### Struktur Dasar
+
 ```
 komponen_nilai          nilai
 - kode (UH/TUGAS/...)   - santri_id, kelas_id, mata_pelajaran_id, tahun_ajaran_id
@@ -113,28 +131,31 @@ komponen_nilai          nilai
 ```
 
 ### Default Komponen (dari `MasterDataSeeder`)
-| Kode | Nama | Bobot | Maks Input |
-|---|---|---|---|
-| `UH` | Ulangan Harian | 20% | 2x |
-| `TUGAS` | Tugas | 15% | 4x |
-| `PRAKTIK` | Praktik | 15% | 2x |
-| `UTS` | UTS | 20% | 1x |
-| `UAS` | UAS | 30% | 1x |
+
+| Kode      | Nama           | Bobot | Maks Input |
+| --------- | -------------- | ----- | ---------- |
+| `UH`      | Ulangan Harian | 20%   | 2x         |
+| `TUGAS`   | Tugas          | 15%   | 4x         |
+| `PRAKTIK` | Praktik        | 15%   | 2x         |
+| `UTS`     | UTS            | 20%   | 1x         |
+| `UAS`     | UAS            | 30%   | 1x         |
 
 `maks_input` bisa diubah admin/kurikulum lewat menu **Data Master → Komponen Nilai**, tidak hardcode.
 
 ### Aturan Kalkulasi ("Cara A" — hasil diskusi eksplisit, JANGAN diubah tanpa alasan kuat)
 
-1. **Per siswa, independen dari siswa lain.** Nilai siswa A tidak pernah dipengaruhi nilai/jumlah input siswa B, walau satu kelas yang sama. *(Sempat dipertimbangkan model "class-wide" di mana pembagi rata-rata sama untuk semua siswa sekelas — **ditolak** karena terlalu kompleks & tidak lazim di sistem akademik.)*
+1. **Per siswa, independen dari siswa lain.** Nilai siswa A tidak pernah dipengaruhi nilai/jumlah input siswa B, walau satu kelas yang sama. _(Sempat dipertimbangkan model "class-wide" di mana pembagi rata-rata sama untuk semua siswa sekelas — **ditolak** karena terlalu kompleks & tidak lazim di sistem akademik.)_
 2. **Slot kosong = dilewati, BUKAN dianggap 0.** Kalau guru cuma isi Tugas 1-3 dari maksimal 4, nilai akhir komponen Tugas siswa itu = rata-rata dari 3 nilai yang ada saja. **Ini keputusan sadar** — mengisi 0 untuk yang tidak dikerjakan adalah **tanggung jawab disiplin guru secara manual**, bukan otomatis dari sistem.
 3. **Bobot dihitung per-komponen-sebagai-kesatuan, bukan per-slot.** Kontribusi Tugas ke nilai akhir = `rata-rata(semua slot Tugas yang terisi) × 15%` — **bukan** `bobot 15% dibagi 4 lalu dikali tiap slot`. Ini penting: siswa yang cuma dapat 3 tugas (bukan salahnya) tidak dirugikan dibanding yang dapat 4 tugas.
 
 Implementasi rumus ada di `PenilaianService::hitungNilaiAkhir()` — method ini query `Nilai::where([santri, kelas, mapel, komponen, tahun_ajaran])->avg('nilai')` per komponen (otomatis merata-ratakan berapapun slot yang ada), lalu jumlahkan `rata × bobot/100` untuk semua komponen yang punya data. **Method ini sudah benar dan tidak perlu diubah** kalau menambah/mengubah komponen baru — cukup pastikan constraint unik tabel `nilai` (`santri+kelas+mapel+komponen+tahun_ajaran+slot`) tetap dihormati saat insert.
 
 ### Alur Guru Input Nilai
+
 `Guru\NilaiController::bulkStore()` menerima form nested: `nilai[santri_id][komponen_id][slot] = angka`. Validasi memastikan `slot` tidak melebihi `maks_input` komponen tersebut (slot di luar batas **diabaikan diam-diam**, bukan error keras — supaya tidak mempersulit guru kalau ada race condition kecil di form).
 
 ### Tempat yang TIDAK perlu disentuh kalau menambah slot/komponen baru
+
 `PenilaianService::hitungNilaiAkhir()` dan `PenilaianService::getRekapNilaiKelas()` (dipakai halaman rekap Kurikulum + `NilaiExport`) **keduanya sudah generic** — pakai `avg('nilai')` per komponen tanpa asumsi jumlah slot. Aman dari perubahan `maks_input` kapan saja.
 
 ---
@@ -142,6 +163,7 @@ Implementasi rumus ada di `PenilaianService::hitungNilaiAkhir()` — method ini 
 ## Skema Data
 
 ### Entitas Inti
+
 ```
 Users ──┬── TenagaPendidik (1:1, guru_id = user_id)
         ├── PenugasanMengajar (1:banyak, sebagai guru)
@@ -177,29 +199,30 @@ SuratKeluar ──── belongsTo TemplateSurat (opsional), belongsTo Santri (o
 ```
 
 ### Penamaan Kolom yang Sering Salah Diasumsikan (cek dulu sebelum pakai!)
-| Yang sering ditebak | Yang benar |
-|---|---|
-| `pelanggaran.tanggal_pelanggaran` | `pelanggaran.tanggal` |
-| `pelanggaran->kategoriPelanggaran` (relasi) | `pelanggaran->kategori()` |
-| `nilai_akhir.semester` / `tahun_ajar` (string) | tidak ada — pakai relasi `tahunAjaran()` ke tabel `tahun_ajaran` |
-| `kamar.nama_kamar` | `kamar.nomor_kamar` |
-| `tenaga_pendidik.nama` | tidak ada — nama guru ada di `users.name` lewat relasi `user()` |
-| `jadwal_pelajaran.guru_id` mengacu ke `tenaga_pendidik.id` | **salah** — mengacu ke `users.id` langsung |
-| `santri->kelasAktif()->kelas_id` | **salah** — `kelasAktif()` adalah `hasOneThrough` yang me-return model `Kelas` langsung, jadi PK-nya `id`, bukan `kelas_id` (kolom `kelas_id` tidak ada di tabel `kelas`) |
-| `santri.user_id` selalu terisi | **salah (sejak 2026-07-13)** — kolom ini nullable karena santri tidak pernah login (tidak ada role `santri`); jangan asumsikan tidak pernah null |
+
+| Yang sering ditebak                                        | Yang benar                                                                                                                                                                |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pelanggaran.tanggal_pelanggaran`                          | `pelanggaran.tanggal`                                                                                                                                                     |
+| `pelanggaran->kategoriPelanggaran` (relasi)                | `pelanggaran->kategori()`                                                                                                                                                 |
+| `nilai_akhir.semester` / `tahun_ajar` (string)             | tidak ada — pakai relasi `tahunAjaran()` ke tabel `tahun_ajaran`                                                                                                          |
+| `kamar.nama_kamar`                                         | `kamar.nomor_kamar`                                                                                                                                                       |
+| `tenaga_pendidik.nama`                                     | tidak ada — nama guru ada di `users.name` lewat relasi `user()`                                                                                                           |
+| `jadwal_pelajaran.guru_id` mengacu ke `tenaga_pendidik.id` | **salah** — mengacu ke `users.id` langsung                                                                                                                                |
+| `santri->kelasAktif()->kelas_id`                           | **salah** — `kelasAktif()` adalah `hasOneThrough` yang me-return model `Kelas` langsung, jadi PK-nya `id`, bukan `kelas_id` (kolom `kelas_id` tidak ada di tabel `kelas`) |
+| `santri.user_id` selalu terisi                             | **salah (sejak 2026-07-13)** — kolom ini nullable karena santri tidak pernah login (tidak ada role `santri`); jangan asumsikan tidak pernah null                          |
 
 ---
 
 ## Modul per Role
 
-| Role | Namespace Controller | Prefix Route |
-|---|---|---|
-| Staf Admin | `App\Http\Controllers\Admin\*` | `admin.*` |
-| Wakil Kurikulum | `App\Http\Controllers\Kurikulum\*` | `kurikulum.*` |
-| Tenaga Pendidik | `App\Http\Controllers\Guru\*` | `guru.*` |
-| Bagian Kesantrian | `App\Http\Controllers\Kesantrian\*` | `kesantrian.*` |
-| Administrator Sistem | `App\Http\Controllers\Sysadmin\*` | `sysadmin.*` |
-| Mudir Pondok | `App\Http\Controllers\Mudir\*` (dashboard saja, read-only) | `mudir.*` |
+| Role                 | Namespace Controller                                       | Prefix Route   |
+| -------------------- | ---------------------------------------------------------- | -------------- |
+| Staf Admin           | `App\Http\Controllers\Admin\*`                             | `admin.*`      |
+| Wakil Kurikulum      | `App\Http\Controllers\Kurikulum\*`                         | `kurikulum.*`  |
+| Tenaga Pendidik      | `App\Http\Controllers\Guru\*`                              | `guru.*`       |
+| Bagian Kesantrian    | `App\Http\Controllers\Kesantrian\*`                        | `kesantrian.*` |
+| Administrator Sistem | `App\Http\Controllers\Sysadmin\*`                          | `sysadmin.*`   |
+| Mudir Pondok         | `App\Http\Controllers\Mudir\*` (dashboard saja, read-only) | `mudir.*`      |
 
 Tiap modul view ada di `resources/views/<nama-modul>/` (flat, **bukan** nested per-role — mis. `resources/views/nilai/` dipakai baik oleh Guru maupun Kurikulum lewat view berbeda: `nilai/show.blade.php` untuk guru, `nilai/kurikulum-show.blade.php` untuk kurikulum).
 
@@ -232,24 +255,41 @@ Checklist ini lahir dari bug-bug nyata yang sudah ditemukan di project ini — b
 
 ---
 
-## Riwayat & Catatan Perbaikan (ringkas)
+## Riwayat & Catatan Perbaikan
 
 Bug signifikan yang **sudah ditemukan & diperbaiki**. Kalau ketemu kode yang "terasa aneh" atau beda dari SRS, cek dulu di sini sebelum "membenarkan" sesuatu yang sebenarnya sudah sengaja begitu.
 
-- **Routing salah/ghost route**: `JadwalController` (`guru_id` divalidasi ke `tenaga_pendidik`, harusnya `users.id`), `SantriController::export()` (view tidak ada), PPDB & Kamar (`Route::resource()` dipakai padahal controller tidak punya ke-7 method standar), `kesantrian.rekap.*` (nunjuk view yang tidak ada) — semua sudah diperbaiki jadi route eksplisit / method & view yang benar.
-- **View path salah folder**: beberapa `@include('kurikulum.jadwal._form')` nunjuk folder yang tidak ada (views itu flat, bukan per-role, lihat §7) — sudah diperbaiki.
-- **9 halaman yang belum pernah dibuat** (`asrama/create,edit`, `pelanggaran/show`, `pendidik/show`, `santri/profil`, `template-surat/show,edit`, `surat/edit`, `users/create,edit`) — sudah dibuat semua.
-- **Sintaks Blade `{{ }}` rusak di `<script>`** — sudah 2x kejadian (`nilai/show.blade.php`, `presensi-kbm/index.blade.php`), ke-mangle jadi `{ { $x - > y } }` (kemungkinan auto-formatter) sampai bikin seluruh script block gagal parse di browser. **Hati-hati kalau ada tool auto-format jalan di file `.blade.php` yang isinya `{{ }}` di dalam `<script>`/`style=""`.**
-- **Dark mode — 3 lapis masalah, semua sudah diperbaiki**: (1) `tailwind.config.js` kurang `darkMode: 'class'` — root cause, lihat §7; (2) puluhan file pakai `bg-gray-50` tanpa `dark:` di elemen form — dicover 1 aturan CSS global; (3) beberapa elemen non-form (bubble chat AI, badge, dst) punya bg statis yang bentrok sama teks token `text-siakad-dark` — ditambal satu-satu.
-- **Sistem Nilai**: awalnya cuma 1 nilai/komponen/semester, diperluas jadi multi-input pakai kolom `slot` (lihat §4).
-- **Jadwal → Penugasan**: `JadwalPelajaran` diganti `PenugasanMengajar` sebagai gerbang akses (lihat §3).
-- **`SantriController` (create/edit/store/update)**: beberapa bug — `Undefined variable $kelasList`, salah baca `kelasAktif()->kelas_id` (harusnya `->id`, PK model `Kelas`), dan penempatan kelas yang divalidasi tapi tidak pernah tersimpan ke `santri_kelas` — semua sudah diperbaiki.
-- **`santri.user_id`**: sempat NOT NULL padahal santri tidak pernah login (tidak ada role `santri`) — sudah dibikin nullable.
-- **Tingkatan**: dulu cuma bisa diubah lewat seeder, sekarang ada CRUD lengkap (`Admin\TingkatanController`), dengan guard supaya tidak bisa hapus tingkatan yang masih ada kelasnya (`cascadeOnDelete` ke `kelas`).
-- **Modul Wali Kelas** (Predikat Sikap + Nilai Ekstrakurikuler): sempat ada celah otorisasi — `santri_id` di body request tidak dicek benar milik kelas wali kelas yang login — sudah ditambal cross-check.
-- **Rapor untuk Wali Kelas**: view rapor sempat hardcode route `kurikulum.rapor.*`, bikin wali kelas kena 403 saat lihat/cetak — sudah dibuat dinamis (`$routePrefix` berdasar `request()->routeIs(...)`).
-- **Presensi/Jurnal KBM**: sempat "siloed" per guru (beda dari Nilai yang shared per kelas+mapel) — sudah disamakan; guru pengganti sekarang dapat akses penuh (lihat+edit+hapus) ke riwayat guru sebelumnya (**keputusan disengaja**, lihat §3).
-- **Import Kelas & Asrama Massal**: 2 bug (baca key Excel salah format — harus slug seperti `nis` bukan `'NIS'`; kondisi update asrama salah cek field) + fitur belum ke-wire sama sekali (route/view/tombol belum ada, payload preview terlalu berat di session) — semua sudah dibuat & diperbaiki.
+1. **Routing salah/ghost route**: `JadwalController` (`guru_id` divalidasi ke `tenaga_pendidik`, harusnya `users.id`), `SantriController::export()` (view tidak ada), PPDB & Kamar (`Route::resource()` dipakai padahal controller tidak punya ke-7 method standar), `kesantrian.rekap.*` (nunjuk view yang tidak ada) — semua sudah diperbaiki jadi route eksplisit / method & view yang benar.
+2. **View path salah folder**: beberapa `@include('kurikulum.jadwal._form')` nunjuk folder yang tidak ada (views itu flat, bukan per-role, lihat §7) — sudah diperbaiki.
+3. **9 halaman yang belum pernah dibuat** (`asrama/create,edit`, `pelanggaran/show`, `pendidik/show`, `santri/profil`, `template-surat/show,edit`, `surat/edit`, `users/create,edit`) — sudah dibuat semua.
+4. **Sintaks Blade `{{ }}` rusak di `<script>`** — sudah 2x kejadian (`nilai/show.blade.php`, `presensi-kbm/index.blade.php`), ke-mangle jadi `{ { $x - > y } }` (kemungkinan auto-formatter) sampai bikin seluruh script block gagal parse di browser. **Hati-hati kalau ada tool auto-format jalan di file `.blade.php` yang isinya `{{ }}` di dalam `<script>`/`style=""`.**
+5. **Dark mode — 3 lapis masalah, semua sudah diperbaiki**: (1) `tailwind.config.js` kurang `darkMode: 'class'` — root cause, lihat §7; (2) puluhan file pakai `bg-gray-50` tanpa `dark:` di elemen form — dicover 1 aturan CSS global; (3) beberapa elemen non-form (bubble chat AI, badge, dst) punya bg statis yang bentrok sama teks token `text-siakad-dark` — ditambal satu-satu.
+6. **Sistem Nilai**: awalnya cuma 1 nilai/komponen/semester, diperluas jadi multi-input pakai kolom `slot` (lihat §4).
+7. **Jadwal → Penugasan**: `JadwalPelajaran` diganti `PenugasanMengajar` sebagai gerbang akses (lihat §3).
+8. **`SantriController` (create/edit/store/update)**: beberapa bug — `Undefined variable $kelasList`, salah baca `kelasAktif()->kelas_id` (harusnya `->id`, PK model `Kelas`), dan penempatan kelas yang divalidasi tapi tidak pernah tersimpan ke `santri_kelas` — semua sudah diperbaiki.
+9. **`santri.user_id`**: sempat NOT NULL padahal santri tidak pernah login (tidak ada role `santri`) — sudah dibikin nullable.
+10. **Tingkatan**: dulu cuma bisa diubah lewat seeder, sekarang ada CRUD lengkap (`Admin\TingkatanController`), dengan guard supaya tidak bisa hapus tingkatan yang masih ada kelasnya (`cascadeOnDelete` ke `kelas`).
+11. **Modul Wali Kelas** (Predikat Sikap + Nilai Ekstrakurikuler): sempat ada celah otorisasi — `santri_id` di body request tidak dicek benar milik kelas wali kelas yang login — sudah ditambal cross-check.
+12. **Rapor untuk Wali Kelas**: view rapor sempat hardcode route `kurikulum.rapor.*`, bikin wali kelas kena 403 saat lihat/cetak — sudah dibuat dinamis (`$routePrefix` berdasar `request()->routeIs(...)`).
+13. **Presensi/Jurnal KBM**: sempat "siloed" per guru (beda dari Nilai yang shared per kelas+mapel) — sudah disamakan; guru pengganti sekarang dapat akses penuh (lihat+edit+hapus) ke riwayat guru sebelumnya (**keputusan disengaja**, lihat §3).
+14. **Import Kelas & Asrama Massal**: 2 bug (baca key Excel salah format — harus slug seperti `nis` bukan `'NIS'`; kondisi update asrama salah cek field) + fitur belum ke-wire sama sekali (route/view/tombol belum ada, payload preview terlalu berat di session) — semua sudah dibuat & diperbaiki.
+15. **Rapor Arab (PDF) — migrasi Dompdf → mPDF + perbaikan format tampilan**:
+    - Awalnya menggunakan `barryvdh/laravel-dompdf` untuk cetak rapor Arab (format KMI 2 halaman). Hasilnya huruf Arab tidak tersambung (terpotong-potong) karena Dompdf tidak support Arabic shaping secara native.
+    - Diubah ke `mpdf/mpdf` dengan konfigurasi:
+        - `$mpdf->autoArabic = true` — mengaktifkan Arabic shaping, huruf Arab menjadi tersambung.
+        - `$mpdf->SetDirectionality('rtl')` — mengatur arah teks menjadi kanan-ke-kiri.
+    - Judul rapor diubah dari `كشف الدرجة` menjadi `تقرير نتائج التعلم` (sesuai format "Laporan Hasil Belajar" yang diinginkan user).
+    - Layout tabel nilai disederhanakan dari 8 kolom menjadi 4 kolom: `الرقم`, `المادة الدراسية`, `الدرجة النهائية`, `وصف الإنجاز`.
+    - Header/footer menggunakan mekanisme native mPDF (`<htmlpageheader>`/`<htmlpagefooter>`) agar otomatis berulang di semua halaman, dengan nomor halaman `{PAGENO}/{nbpg}`.
+    - Fungsi helper `toArabicDigits()` ditambahkan di view untuk konversi angka Latin → Arab (0→٠, 1→١, 2→٢, dst).
+    - Fungsi `masehiKeHijriahArab()` ditambahkan sebagai fallback untuk generate tanggal Hijriah otomatis jika database kosong (tidak bergantung ekstensi `calendar` PHP).
+    - Fungsi `formatMasehiArab()` untuk menampilkan tanggal Masehi dengan nama bulan dalam bahasa Arab (tanpa bergantung `translatedFormat()` yang kadang tidak konsisten).
+    - Tanda tangan diubah menjadi 4 kolom dengan urutan kanan-ke-kiri: `مدير المعهد`, `رئيس المدرسة`, `ولي الفصل`, `ولي الطالب`.
+    - Margin diatur di `@page` (`margin-top: 34mm`, `margin-bottom: 20mm`, `margin-header: 8mm`, `margin-footer: 8mm`) untuk memberi ruang header/footer.
+    - File view: `resources/views/rapor/cetak-arab-pdf.blade.php`.
+    - File service: `app/Services/RaporArabService.php` (ditambah data pendukung: `sekolah_nama`, `fase`, `tempat`, `tanggal_masehi`, `tanggal_hijriah`, `mudir`, `wali_kelas`, `kepala_sekolah`).
+    - Controller: `app/Http/Controllers/Kurikulum/RaporController.php` method `cetakArab()`.
+    - **Status**: ✅ Selesai — huruf Arab tersambung, layout sesuai format "Laporan Hasil Belajar", header/footer berulang otomatis, angka Arab otomatis.
 
 ---
 
@@ -258,13 +298,14 @@ Bug signifikan yang **sudah ditemukan & diperbaiki**. Kalau ketemu kode yang "te
 Ditulis eksplisit supaya tidak "ditemukan ulang" dari nol — dan supaya siapapun yang lanjut tahu ini **keputusan sadar untuk ditunda**, bukan terlewat begitu saja:
 
 1. **FR-11 Notifikasi Sistem** — tabel & trait `Notifiable` ada, tidak ada satupun `Notification` class yang jalan. Perlu dirancang dulu event apa saja yang trigger notif sebelum diimplementasikan (bukan sekadar bugfix).
-2. **Lupa password & edit profil mandiri** — `routes/auth.php` (scaffolding Breeze) tidak pernah di-`require`. Tidak ada halaman ganti password untuk user selain lewat Sysadmin. Perlu keputusan: mau diaktifkan penuh (perlu SMTP untuk reset-password email) atau cukup fitur "ganti password sendiri saat login" tanpa email?
+2. **Lupa password & edit profil mandiri** — `routes/auth.php` (scaffolding Breeze) ada di repo, tapi tidak pernah di-`require` dari `routes/web.php`. Akibatnya, route login/register/password reset default tidak aktif, dan tidak ada halaman ganti password untuk user selain lewat Sysadmin. Perlu keputusan: mau diaktifkan penuh (dengan SMTP untuk reset-password email) atau cukup fitur "ganti password sendiri saat login" tanpa email?
 3. **Komponen Nilai: field `mata_pelajaran_id`/`tipe`/`deskripsi`** — form-nya ada, tervalidasi, tapi **tidak pernah tersimpan** (kolom tidak ada di tabel `komponen_nilai`, tidak ada di `$fillable`). Komponen nilai sebenarnya **global** (bukan per-mapel) — form yang ada saat ini **menyesatkan** karena seolah-olah bisa di-scope per mapel. Perlu diputuskan: hapus field itu dari form (karena memang global), atau benar-benar bikin per-mapel (migrasi + query berubah signifikan)?
-4. **Dependency `maatwebsite/excel` & `barryvdh/laravel-dompdf` hilang dari `composer.json`** — kodenya sudah pakai package ini di banyak tempat (Export, Rapor, Surat) tapi belum terdaftar sebagai dependency. Wajib `composer require` manual sebelum fitur Export/PDF bisa jalan.
+4. **Dependency `maatwebsite/excel` & `barryvdh/laravel-dompdf` sudah kembali ada di `composer.json`** — item ini sudah diperbaiki. Pastikan `composer install` dijalankan setelah checkout untuk memasang dependensi, tapi catatan ini sekarang usang.
 5. **Kotak alert/badge status pakai warna hex hardcode** — 16 file punya `style="background: #fef2f2; ..."` yang tidak adaptif dark mode (tetap terang meski dark mode aktif). Teks tetap terbaca (bukan bug fatal seperti kasus input form), cuma kurang selaras secara visual.
 6. **Belum ada test case untuk modul akademik** — struktur `tests/` ada dari scaffolding, belum ada test spesifik untuk Penugasan/Nilai/Presensi/PPDB.
 7. **`santri_kelas` tidak rollover otomatis saat ganti Tahun Ajaran** — tabel ini unique per `(santri_id, tahun_ajaran_id)`, tapi `TahunAjaranController::aktifkan()` cuma flip flag `is_active`, TIDAK pernah copy baris `santri_kelas` dari TA lama ke TA baru. Akibatnya begitu TA baru diaktifkan, **semua santri (bisa 1000+) otomatis "tanpa kelas"** untuk TA itu sampai di-assign ulang satu-satu lewat form Edit Santri. Ini alasan utama kenapa fitur "Import Kelas & Asrama Massal" dibutuhkan (lihat tabel di atas) — tapi itu baru menutupi gejalanya (bantu assign cepat), bukan solusi permanen di titik `aktifkan()`.
 8. **Kenaikan kelas massal — pendekatan belum diputuskan final** — sempat ditawarkan 2 opsi ke user: (a) Excel-only (download-edit-upload, sudah dibangun sebagian, lihat item Import di atas), (b) UI pemetaan cepat "7A → 8A" sekali klik untuk seluruh rombongan + Excel cuma buat pengecualian individual. User belum eksplisit memilih salah satu — yang sudah berjalan sekarang murni jalur (a). Kalau ke depan mau ditambah jalur (b) juga, itu fitur terpisah, bukan pengganti Import yang sudah ada.
+9. ~~**View eksport raport arab - masih belum menemukan titik temu dari format yang diinginkan** — sempat dibentuk dengan view yang sederhana, namun masih belum menemukan komposisi yang tepat, terutama ketika menggunakan barryvdh/pdf, sehingga harus diganti menjadi mpdf/mpdf untuk menangani permasalahan dimana format bahasa arabnya sudah benar, namun masih belum menyelesaikan titik temu dari format yang diinginkan oleh client.~~ **✅ SUDAH DIPERBAIKI** — migrasi ke mPDF dengan layout baru selesai. Lihat Riwayat & Catatan Perbaikan poin 15.
 
 ---
 
@@ -274,4 +315,20 @@ Lihat [README.md § Default Users](../README.md#default-users) — semua akun pa
 
 ---
 
-*Dokumen ini dibuat berdasarkan riwayat pengembangan sistem secara kolaboratif. Kalau ada keputusan desain di kode yang tidak terjelaskan di sini, kemungkinan besar itu bagian yang belum sempat didokumentasikan — bukan berarti boleh diubah bebas tanpa konfirmasi ulang ke pemilik sistem.*
+_Dokumen ini dibuat berdasarkan riwayat pengembangan sistem secara kolaboratif. Kalau ada keputusan desain di kode yang tidak terjelaskan di sini, kemungkinan besar itu bagian yang belum sempat didokumentasikan — bukan berarti boleh diubah bebas tanpa konfirmasi ulang ke pemilik sistem._
+
+```
+
+---
+
+## 📋 **Ringkasan Perubahan**
+
+| Bagian | Perubahan |
+|--------|-----------|
+| **Riwayat & Catatan Perbaikan** | ✅ Ditambahkan poin 15 tentang Rapor Arab (migrasi Dompdf → mPDF, perbaikan layout, helper angka Arab, tanggal Hijriah fallback) |
+| **Masalah yang Diketahui** | ✅ Poin 9 dicoret dan ditandai **SUDAH DIPERBAIKI** dengan referensi ke poin 15 |
+
+---
+
+**Sekarang `DEVELOPER_GUIDE.md` sudah terupdate dengan semua perubahan rapor Arab!** 😊
+```

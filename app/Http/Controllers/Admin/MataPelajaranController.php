@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\KategoriMataPelajaran;
 use App\Models\MataPelajaran;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
@@ -28,7 +29,11 @@ class MataPelajaranController extends Controller
 
     public function create()
     {
-        return view('mata-pelajaran.create');
+        // Dropdown kategori sekarang dari master data (bisa dikelola lewat
+        // Admin > Kategori Mapel), bukan lagi array hardcoded di blade.
+        $kategoriMataPelajaran = KategoriMataPelajaran::urut()->get();
+
+        return view('mata-pelajaran.create', compact('kategoriMataPelajaran'));
     }
 
     public function store(Request $request)
@@ -36,10 +41,15 @@ class MataPelajaranController extends Controller
         $validated = $request->validate([
             'kode'      => ['required', 'string', 'max:20', 'unique:mata_pelajaran,kode'],
             'nama'      => ['required', 'string', 'max:100'],
-            'kategori'  => ['nullable', 'string', 'max:100'],
+            // Sengaja masih 'exists' ke kolom nama (bukan foreign key sungguhan) --
+            // lihat catatan di migration create_kategori_mata_pelajaran_table
+            // soal kenapa mata_pelajaran.kategori tetap string biasa.
+            'kategori'  => ['nullable', 'string', 'max:100', Rule::exists('kategori_mata_pelajaran', 'nama')],
             'tingkat'   => ['required', 'string', 'max:20'],
             'kkm'       => ['nullable', 'integer', 'min:0', 'max:100'],
             'deskripsi' => ['nullable', 'string', 'max:500'],
+        ], [
+            'kategori.exists' => 'Kategori tidak valid. Pilih dari daftar yang tersedia.',
         ]);
 
         $mapel = MataPelajaran::create(array_merge($validated, [
@@ -60,7 +70,9 @@ class MataPelajaranController extends Controller
 
     public function edit(MataPelajaran $mataPelajaran)
     {
-        return view('mata-pelajaran.edit', compact('mataPelajaran'));
+        $kategoriMataPelajaran = KategoriMataPelajaran::urut()->get();
+
+        return view('mata-pelajaran.edit', compact('mataPelajaran', 'kategoriMataPelajaran'));
     }
 
     public function update(Request $request, MataPelajaran $mataPelajaran)
@@ -73,10 +85,12 @@ class MataPelajaranController extends Controller
                 Rule::unique('mata_pelajaran', 'kode')->ignore($mataPelajaran->id)
             ],
             'nama'      => ['required', 'string', 'max:100'],
-            'kategori'  => ['nullable', 'string', 'max:100'],
+            'kategori'  => ['nullable', 'string', 'max:100', Rule::exists('kategori_mata_pelajaran', 'nama')],
             'tingkat'   => ['required', 'string', 'max:20'],
             'kkm'       => ['nullable', 'integer', 'min:0', 'max:100'],
             'deskripsi' => ['nullable', 'string', 'max:500'],
+        ], [
+            'kategori.exists' => 'Kategori tidak valid. Pilih dari daftar yang tersedia.',
         ]);
 
         $old = $mataPelajaran->toArray();

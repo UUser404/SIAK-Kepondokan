@@ -69,15 +69,16 @@
                            border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
                            text-siakad-dark dark:text-white focus:ring-2 outline-none transition">
                 <option value="">-- Belum dikelompokkan --</option>
-                @foreach(['القرآن و علومه', 'العقيدة و الأخلاق', 'الشّريعة', 'اللغة العربية'] as $kat)
-                <option value="{{ $kat }}"
-                    {{ old('kategori', $mataPelajaran?->kategori) === $kat ? 'selected' : '' }}>
-                    {{ $kat }}
+                @foreach($kategoriMataPelajaran as $kat)
+                <option value="{{ $kat->nama }}"
+                    {{ old('kategori', $mataPelajaran?->kategori) === $kat->nama ? 'selected' : '' }}>
+                    {{ $kat->nama }}
                 </option>
                 @endforeach
             </select>
             <p class="text-xs text-siakad-secondary dark:text-gray-400 mt-1">
                 Mapel dikelompokkan di rapor berdasarkan kategori ini — mapel tanpa kategori tidak akan tampil di rapor.
+                <a href="{{ route('admin.kategori-mata-pelajaran.index') }}" class="underline hover:text-siakad-primary">Kelola daftar kategori</a>.
             </p>
             @error('kategori')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
         </div>
