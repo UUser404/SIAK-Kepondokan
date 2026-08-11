@@ -244,6 +244,7 @@ Tiap modul view ada di `resources/views/<nama-modul>/` (flat, **bukan** nested p
 - **PDF**: pakai `Barryvdh\DomPDF\Facade\Pdf::loadView(...)`, pola sudah ada di `RaporController` & `SuratController`.
 - **Service layer**: logika bisnis kompleks (kalkulasi, rekap) taruh di `app/Services/`, controller cuma orkestrasi + validasi + response.
 - **Relasi "lunak" (soft relation) tanpa foreign key**: kalau ada alasan kuat untuk TIDAK bikin foreign key sungguhan (mis. kolom itu dipakai service lain yang belum sepenuhnya dipahami, lihat kasus `KategoriMataPelajaran` di §9 poin 16), boleh pakai `hasMany`/`belongsTo` dengan custom local/foreign key yang menunjuk ke kolom non-ID (`$this->hasMany(Model::class, 'kolom_string', 'nama')`). Eloquent tidak mewajibkan constraint DB untuk relasi jalan. **Ini pengecualian, bukan pola default** — kalau tidak ada alasan spesifik, tetap pakai foreign key + `constrained()` seperti modul lain.
+- **Soft-deactivate vs hard delete di `destroy()`**: pilih berdasarkan apakah entitas itu punya data akademik/historis yang bergantung padanya. Ada nilai/presensi/rapor/penugasan yang referensi ke entitas ini (mis. `MataPelajaran`) → pakai `update(['is_active' => false])`, JANGAN hard delete (lihat §9 poin 20 untuk alasan lengkap). Murni master data tanpa histori yang perlu dijaga (mis. `Tingkatan`, `KategoriMataPelajaran`) → boleh `->delete()` sungguhan, TAPI wajib guard: cek dulu relasi terkait `->exists()`, tolak hapus kalau masih dipakai (lihat §9 poin 10 & 16 untuk pola guard-nya).
 
 ---
 
@@ -321,6 +322,21 @@ Bug signifikan yang **sudah ditemukan & diperbaiki**. Kalau ketemu kode yang "te
     - **File yang SUDAH dicek dan TIDAK butuh perubahan** (dikonfirmasi lewat grep `->kkm`, bukan asumsi): `WaliKelas\DashboardController.php`, `wali-kelas/dashboard.blade.php`, `Guru\NilaiController.php` (method-method selain `show()`) — semuanya bergantung ke `NilaiAkhir.tuntas` yang sudah dihitung `PenilaianService`, bukan baca `kkm` langsung.
 18. **Bug `{{ }}` mangled di `<script>` — kejadian ke-3** (lihat poin 4 di riwayat ini untuk 2 kejadian sebelumnya): ditemukan lagi di `resources/views/nilai/show.blade.php` saat mengerjakan poin 17 di atas — `{{ $mataPelajaran->kkm }}` dan loop `bobotMap` ke-mangle jadi `{ { $mataPelajaran - > kkm } }` (spasi disisipkan di sekitar `{{`, `}}`, dan `->`), bikin seluruh `<script>` block gagal parse di browser (kalkulasi nilai akhir live `hitungAkhir()` mati total). Sudah diperbaiki sekaligus dengan migrasi ke `kkmUntukTingkatan()` di poin 17. **Kalau nemu pola serupa di file lain**, sangat mungkin ini bukan kebetulan — kemungkinan ada tool/editor tertentu di alur kerja yang menyisipkan spasi di sekitar `{{`/`}}`/`->` saat menyimpan file `.blade.php`. Selalu cek dengan `grep -n "{ *{" resources/views/**/*.blade.php` setelah save kalau curiga.
 19. **Sticky header ganda bertabrakan di `rapor/show.blade.php`**: div sticky khusus halaman rapor (ringkasan nilai + tombol cetak) pakai `sticky top-0 z-20` — persis sama dengan topbar utama di `layouts/app.blade.php` (`header` dengan `h-16 sticky top-0 z-20`). Karena keduanya bukan nested (sibling, bukan parent-child), dua elemen sticky di offset `top-0` yang sama akan **rebutan posisi** dan saling tutup pas di-scroll, bukan menumpuk rapi. Fix: div sticky di rapor diubah jadi `top-16 z-10` — `top-16` (64px) menyamai tinggi topbar (`h-16`) supaya nempel PAS DI BAWAHNYA, `z-10` (lebih rendah dari topbar `z-20`) supaya topbar tetap menang kalau ada overlap sesaat. **Pola ini berlaku umum**: kalau bikin sticky element baru di halaman manapun yang dirender di dalam `<x-app-layout>`, selalu offset `top`-nya minimal `top-16`, jangan `top-0` — karena `top-0` sudah "dipakai" topbar utama.
+20. **`MataPelajaranController::destroy()` sengaja soft-deactivate, BUKAN hard delete** — dan ini pola yang disengaja, bukan celah yang belum sempat diperbaiki:
+    ```php
+    public function destroy(MataPelajaran $mataPelajaran)
+    {
+        $mataPelajaran->update(['is_active' => false]);
+        ActivityLogService::logDelete($mataPelajaran);
+        return back()->with('success', 'Mata pelajaran dinonaktifkan.');
+    }
+    ```
+
+    - Beda dengan `TingkatanController::destroy()` dan `KategoriMataPelajaranController::destroy()` yang memang `->delete()` sungguhan (dan karena itu butuh guard cek relasi dulu, lihat §9 poin 10 & 16) — mapel **tidak pernah** di-hard-delete lewat controller ini, jadi tidak butuh guard serupa.
+    - **Alasan**: `Nilai`, `NilaiAkhir`, `PenugasanMengajar`, `KkmTingkatan`, `Pertemuan` semuanya referensi `mata_pelajaran_id`. Data akademik historis (rapor tahun-tahun lalu) harus tetap bisa dibuka/dicetak ulang kapan saja — hard delete berisiko bikin data itu orphaned atau ikut ke-cascade-delete. `is_active = false` juga gampang di-toggle balik kalau admin salah klik; hard delete tidak bisa di-undo tanpa restore backup.
+    - **Konsekuensi yang perlu disadari** (bukan bug, tapi trade-off desain): tabel `mata_pelajaran` tidak pernah benar-benar mengecil — mapel yang "dihapus" tetap ada selamanya, cuma disembunyikan lewat scope `aktif()`. Untuk jumlah mapel yang wajar di satu pondok, ini tidak masalah.
+    - **Pola umum untuk entitas baru ke depannya**: kalau entitas punya data akademik/historis yang bergantung padanya (nilai, presensi, rapor, dst) → soft-deactivate (`is_active`), JANGAN hard delete. Kalau entitas murni master data tanpa histori yang perlu dijaga (Tingkatan, Kategori Mapel, dst) → boleh hard delete, TAPI wajib guard cek relasi dulu (pola `->exists()` sebelum `->delete()`).
+    - **Belum ada fitur hard-delete permanen** untuk mapel yang benar-benar salah input dan belum pernah dipakai sama sekali (nol relasi). Kalau suatu saat dibutuhkan, itu fitur terpisah yang wajib pakai guard serupa Tingkatan/Kategori — bukan modifikasi `destroy()` yang sudah ada.
 
 ---
 
