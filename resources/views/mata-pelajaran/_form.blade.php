@@ -17,33 +17,18 @@
         </div>
         @endif
 
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
-                    Kode <span class="text-red-500">*</span>
-                </label>
-                <input type="text" name="kode"
-                    value="{{ old('kode', $mataPelajaran?->kode) }}"
-                    placeholder="e.g. MAT" required
-                    class="w-full px-3.5 py-2.5 text-sm rounded-xl border uppercase
-                              border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
-                              text-siakad-dark dark:text-white placeholder-gray-400
-                              focus:ring-2 outline-none transition">
-                @error('kode')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
-                    KKM
-                </label>
-                <input type="number" name="kkm" min="0" max="100"
-                    value="{{ old('kkm', $mataPelajaran?->kkm) }}"
-                    placeholder="e.g. 70"
-                    class="w-full px-3.5 py-2.5 text-sm rounded-xl border
-                              border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
-                              text-siakad-dark dark:text-white placeholder-gray-400
-                              focus:ring-2 outline-none transition">
-                @error('kkm')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
-            </div>
+        <div>
+            <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
+                Kode <span class="text-red-500">*</span>
+            </label>
+            <input type="text" name="kode"
+                value="{{ old('kode', $mataPelajaran?->kode) }}"
+                placeholder="e.g. MAT" required
+                class="w-full px-3.5 py-2.5 text-sm rounded-xl border uppercase
+                          border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
+                          text-siakad-dark dark:text-white placeholder-gray-400
+                          focus:ring-2 outline-none transition">
+            @error('kode')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
         </div>
 
         <div>

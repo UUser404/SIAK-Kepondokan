@@ -125,6 +125,16 @@ class RaporController extends Controller
         $santri->load(['santriKelas.kelas.tingkatan', 'penempatanKamar.kamar.asrama']);
         $kelasAktif = $santri->santriKelas->where('status', 'aktif')->first()?->kelas;
 
+        // KKM per tingkatan (bukan lagi kolom mata_pelajaran.kkm global) --
+        // dihitung sekali di sini untuk semua baris nilai, mengikuti pola yang
+        // sama persis dengan RaporArabService::rakit(). Ditempel sebagai
+        // atribut sementara (tidak disimpan ke DB) di tiap objek NilaiAkhir
+        // supaya blade tinggal baca $na->kkm_tingkatan.
+        $tingkatanId = $kelasAktif?->tingkatan_id;
+        foreach ($nilaiAkhir as $na) {
+            $na->kkm_tingkatan = $na->mataPelajaran->kkmUntukTingkatan($tingkatanId);
+        }
+
         $rataRata   = round($nilaiAkhir->avg('nilai_akhir') ?? 0, 1);
         $totalTuntas = $nilaiAkhir->where('tuntas', true)->count();
         $totalMapel  = $nilaiAkhir->count();
@@ -157,6 +167,12 @@ class RaporController extends Controller
 
         $santri->load(['santriKelas.kelas.tingkatan']);
         $kelasAktif = $santri->santriKelas->where('status', 'aktif')->first()?->kelas;
+
+        // Sama seperti di show() -- lihat catatan di sana.
+        $tingkatanId = $kelasAktif?->tingkatan_id;
+        foreach ($nilaiAkhir as $na) {
+            $na->kkm_tingkatan = $na->mataPelajaran->kkmUntukTingkatan($tingkatanId);
+        }
 
         $mpdf = new Mpdf([
             'mode' => 'utf-8',

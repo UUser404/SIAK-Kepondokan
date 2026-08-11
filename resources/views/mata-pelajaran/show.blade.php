@@ -26,7 +26,6 @@
                 ['Kode', $mataPelajaran->kode],
                 ['Nama', $mataPelajaran->nama],
                 ['Tingkat', 'Kelas ' . $mataPelajaran->tingkat],
-                ['KKM', $mataPelajaran->kkm ?? '—'],
                 ['Deskripsi', $mataPelajaran->deskripsi ?? '—'],
                 ['Status', $mataPelajaran->is_active ? 'Aktif' : 'Nonaktif'],
                 ] as [$label, $value])

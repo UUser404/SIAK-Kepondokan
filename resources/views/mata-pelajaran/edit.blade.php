@@ -18,7 +18,7 @@
         </h2>
     </div>
 
-    <form method="POST" action="{{ route('admin.mata-pelajaran.update', $mataPelajaran) }}" class="max-w-xl">
+    <form method="POST" action="{{ route('admin.mata-pelajaran.update', $mataPelajaran) }}" class="w-full">
         @csrf @method('PUT')
         @include('mata-pelajaran._form', ['submitLabel' => 'Perbarui'])
     </form>

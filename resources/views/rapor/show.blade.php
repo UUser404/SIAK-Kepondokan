@@ -135,7 +135,7 @@ $routePrefix = request()->routeIs('wali-kelas.*') ? 'wali-kelas' : 'kurikulum';
                                 {{ $na->predikat ?? '—' }}
                             </td>
                             <td class="px-2 sm:px-3 py-3 text-center text-siakad-secondary text-xs sm:text-sm">
-                                {{ $na->mataPelajaran->kkm }}
+                                {{ $na->kkm_tingkatan ?? '—' }}
                             </td>
                             <td class="px-2 sm:px-3 py-3 text-center">
                                 <span class="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold

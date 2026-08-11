@@ -53,7 +53,10 @@ class PenilaianService
 
         $nilaiAkhirHitung = round($nilaiAkhirHitung, 2);
         $predikat         = $this->getPredikat($nilaiAkhirHitung);
-        $tuntas           = $nilaiAkhirHitung >= $mataPelajaran->kkm;
+        // KKM per tingkatan, bukan lagi kolom mata_pelajaran.kkm global --
+        // KKM ternyata beda per tingkatan untuk mapel yang sama (lihat
+        // kkmUntukTingkatan() di model MataPelajaran).
+        $tuntas           = $nilaiAkhirHitung >= $mataPelajaran->kkmUntukTingkatan($kelas->tingkatan_id);
 
         $record = NilaiAkhir::updateOrCreate(
             [
@@ -148,7 +151,9 @@ class PenilaianService
             'santri'   => $santriList,
             'komponen' => $komponen,
             'rows'     => $rows,
-            'kkm'      => $mataPelajaran->kkm,
+            // KKM per tingkatan (lihat catatan sama di hitungNilaiAkhir()) --
+            // ini yang ditampilkan sebagai ambang batas di rekap spreadsheet.
+            'kkm'      => $mataPelajaran->kkmUntukTingkatan($kelas->tingkatan_id),
         ];
     }
 

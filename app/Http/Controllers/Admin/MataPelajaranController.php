@@ -46,7 +46,6 @@ class MataPelajaranController extends Controller
             // soal kenapa mata_pelajaran.kategori tetap string biasa.
             'kategori'  => ['nullable', 'string', 'max:100', Rule::exists('kategori_mata_pelajaran', 'nama')],
             'tingkat'   => ['required', 'string', 'max:20'],
-            'kkm'       => ['nullable', 'integer', 'min:0', 'max:100'],
             'deskripsi' => ['nullable', 'string', 'max:500'],
         ], [
             'kategori.exists' => 'Kategori tidak valid. Pilih dari daftar yang tersedia.',
@@ -87,7 +86,6 @@ class MataPelajaranController extends Controller
             'nama'      => ['required', 'string', 'max:100'],
             'kategori'  => ['nullable', 'string', 'max:100', Rule::exists('kategori_mata_pelajaran', 'nama')],
             'tingkat'   => ['required', 'string', 'max:20'],
-            'kkm'       => ['nullable', 'integer', 'min:0', 'max:100'],
             'deskripsi' => ['nullable', 'string', 'max:500'],
         ], [
             'kategori.exists' => 'Kategori tidak valid. Pilih dari daftar yang tersedia.',

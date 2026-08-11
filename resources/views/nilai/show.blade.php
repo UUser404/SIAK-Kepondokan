@@ -22,7 +22,7 @@
                 {{ $mataPelajaran->nama }}
             </h2>
             <p class="text-sm text-siakad-secondary mt-0.5">
-                {{ $kelas->nama }} · KKM: {{ $mataPelajaran->kkm }}
+                {{ $kelas->nama }} · KKM: {{ $kkm ?? '—' }}
             </p>
         </div>
     </div>
@@ -228,9 +228,14 @@
 
     @push('scripts')
     <script>
+        // KKM per tingkatan (dihitung di controller lewat kkmUntukTingkatan()),
+        // BUKAN lagi $mataPelajaran->kkm global. Fallback ke 0 kalau benar-benar
+        // belum ada KKM yang diatur sama sekali (baik di kkm_tingkatan maupun
+        // kolom kkm lama) -- supaya JS tidak pecah, tapi tetap dievaluasi
+        // sebagai "belum tuntas" untuk skor manapun, bukan otomatis "tuntas".
         const KKM = {
             {
-                $mataPelajaran - > kkm
+                $kkm ?? 0
             }
         };
 
