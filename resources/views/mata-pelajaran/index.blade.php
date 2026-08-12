@@ -50,7 +50,7 @@
             <table class="w-full text-sm table-saas">
                 <thead style="background-color: rgba(35,76,106,0.04);">
                     <tr>
-                        @foreach(['Kode','Nama Mata Pelajaran','Tingkat','Status','Aksi'] as $h)
+                        @foreach(['Kode','Nama Mata Pelajaran','Status','Aksi'] as $h)
                         <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide
                                text-siakad-secondary dark:text-gray-400">{{ $h }}</th>
                         @endforeach
@@ -63,9 +63,6 @@
                             style="color: var(--siakad-primary);">{{ $mp->kode }}</td>
                         <td class="px-5 py-3.5 font-medium text-siakad-dark dark:text-white">
                             {{ $mp->nama }}
-                        </td>
-                        <td class="px-5 py-3.5 text-siakad-secondary dark:text-gray-400">
-                            Kelas {{ $mp->tingkat }}
                         </td>
                         <td class="px-5 py-3.5">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
@@ -114,7 +111,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-5 py-12 text-center text-sm
+                        <td colspan="4" class="px-5 py-12 text-center text-sm
                                            text-siakad-secondary dark:text-gray-400">
                             Belum ada mata pelajaran
                         </td>

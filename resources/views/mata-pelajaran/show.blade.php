@@ -25,7 +25,6 @@
                 @foreach([
                 ['Kode', $mataPelajaran->kode],
                 ['Nama', $mataPelajaran->nama],
-                ['Tingkat', 'Kelas ' . $mataPelajaran->tingkat],
                 ['Deskripsi', $mataPelajaran->deskripsi ?? '—'],
                 ['Status', $mataPelajaran->is_active ? 'Aktif' : 'Nonaktif'],
                 ] as [$label, $value])

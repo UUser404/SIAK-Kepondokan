@@ -154,6 +154,14 @@ $routePrefix = request()->routeIs('wali-kelas.*') ? 'wali-kelas' : 'kurikulum';
                                     onmouseout="this.style.backgroundColor='var(--siakad-primary)'">
                                     PDF
                                 </a>
+                                <a href="{{ route($routePrefix.".rapor.cetak-arab", $santri) }}"
+                                    target="_blank"
+                                    class="px-3 py-1.5 text-xs font-medium rounded-xl border transition
+                                      hover:bg-gray-50"
+                                    style="border-color: var(--border-color); color: var(--siakad-secondary);"
+                                    title="Cetak Rapor Arab">
+                                    PDF Arab
+                                </a>
                             </div>
                         </td>
                     </tr>

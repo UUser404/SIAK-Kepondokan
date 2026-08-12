@@ -70,25 +70,6 @@
 
         <div>
             <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
-                Tingkat <span class="text-red-500">*</span>
-            </label>
-            <select name="tingkat" required
-                class="w-full px-3.5 py-2.5 text-sm rounded-xl border
-                           border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
-                           text-siakad-dark dark:text-white focus:ring-2 outline-none transition">
-                <option value="">-- Pilih Tingkat --</option>
-                @foreach(['7','8','9','10','11','12'] as $t)
-                <option value="{{ $t }}"
-                    {{ old('tingkat', $mataPelajaran?->tingkat) == $t ? 'selected' : '' }}>
-                    Kelas {{ $t }}
-                </option>
-                @endforeach
-            </select>
-            @error('tingkat')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
-        </div>
-
-        <div>
-            <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
                 Deskripsi
             </label>
             <textarea name="deskripsi" rows="2"
