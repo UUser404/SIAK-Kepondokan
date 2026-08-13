@@ -75,6 +75,7 @@ $active = fn(string $prefix) => str_starts_with($current, $prefix)
 ['route'=>'kurikulum.penugasan.index', 'prefix'=>'kurikulum.penugasan', 'label'=>'Penugasan', 'icon'=>'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'],
 ['route'=>'kurikulum.nilai.index', 'prefix'=>'kurikulum.nilai', 'label'=>'Penilaian', 'icon'=>'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'],
 ['route'=>'kurikulum.rapor.index', 'prefix'=>'kurikulum.rapor', 'label'=>'Rapor', 'icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
+['route'=>'kurikulum.leger-nilai.index', 'prefix'=>'kurikulum.leger-nilai', 'label'=>'Leger Nilai', 'icon'=>'M9 17v-6h6v6M9 3v4h6V3m-9 4h12a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2z'],
 ] as $item)
 <a href="{{ route($item['route']) }}"
     class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active($item['prefix']) }}"
@@ -150,18 +151,92 @@ $active = fn(string $prefix) => str_starts_with($current, $prefix)
 
 
 @if(Auth::user()->isWaliKelas())
+@php
+// Wali kelas -- SAAT INI diasumsikan 1 guru cuma jadi wali 1 kelas,
+// jadi link Predikat Sikap & Nilai Ekskul di bawah LANGSUNG ke kelas
+// itu (skip halaman pilih kelas), diambil dari kelas pertama.
+//
+// KALAU NANTI wali kelas bisa pegang >1 kelas: Predikat Sikap & Nilai
+// Ekskul BELUM punya halaman pemilih kelas sendiri (beda dari Rapor &
+// Leger Nilai di bawah yang sudah punya route .index() sendiri buat
+// pilih kelas, jadi 2 link itu SUDAH aman untuk banyak kelas tanpa
+// perlu diubah). Kalau $kelasWaliList->count() > 1 mulai kejadian:
+// 1. Bikin dulu halaman pemilih kelas untuk predikat-sikap & nilai-
+// ekskul (niru pola rapor/index.blade.php atau leger-nilai/index.blade.php)
+// 2. Baru ubah href di bawah dari "kelas pertama langsung" jadi ke
+// halaman pemilih itu kalau count() > 1
+// JANGAN cuma diamkan "kelas pertama" sebagai solusi permanen begitu
+// ada wali kelas yang benar-benar pegang >1 kelas -- guru itu nanti
+// tidak akan bisa akses Predikat Sikap/Nilai Ekskul kelas ke-2/3-nya
+// sama sekali lewat sidebar.
+//
+// Link "Dashboard Wali Kelas" sendiri cuma muncul kalau count() > 1
+// (lihat @if di bawah) -- kalau cuma 1 kelas, dashboard jadi klik
+// ekstra yang mubazir karena 4 link lain sudah langsung ke kelas itu.
+$kelasWaliList = Auth::user()->waliKelasKelas()->get();
+$kelasWaliUtama = $kelasWaliList->first();
+@endphp
 <div class="pt-4 pb-1">
     <p class="px-3 text-[10px] font-semibold uppercase tracking-widest sidebar-section-title"
         style="color: var(--text-secondary); opacity: 0.6;">Wali Kelas</p>
 </div>
+{{-- Dashboard Wali Kelas cuma berguna kalau wali kelas pegang >1 kelas
+     (jadi butuh overview/pilih dulu). Kalau cuma 1 kelas, 4 link di bawah
+     sudah langsung ke kelas itu -- dashboard jadi klik ekstra yang
+     mubazir, jadi disembunyikan. --}}
+@if($kelasWaliList->count() > 1)
 <a href="{{ route('wali-kelas.dashboard') }}"
-    class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active('wali-kelas') }}"
+    class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active('wali-kelas.dashboard') }}"
     style="color: var(--text-secondary);">
     <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
             d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
     <span class="sidebar-text">Dashboard Wali Kelas</span>
+</a>
+@endif
+
+@if($kelasWaliUtama)
+<a href="{{ route('wali-kelas.predikat-sikap.index', $kelasWaliUtama) }}"
+    class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active('wali-kelas.predikat-sikap') }}"
+    style="color: var(--text-secondary);">
+    <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span class="sidebar-text">Predikat Sikap</span>
+</a>
+<a href="{{ route('wali-kelas.nilai-ekstrakurikuler.index', $kelasWaliUtama) }}"
+    class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active('wali-kelas.nilai-ekstrakurikuler') }}"
+    style="color: var(--text-secondary);">
+    <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+    <span class="sidebar-text">Nilai Ekskul</span>
+</a>
+@endif
+
+{{-- Rapor & Leger Nilai SUDAH punya halaman pemilih kelas sendiri
+     (route .index()), jadi aman langsung link ke situ -- tidak perlu
+     nunggu/butuh $kelasWaliUtama, sudah siap untuk >1 kelas dari sononya. --}}
+<a href="{{ route('wali-kelas.rapor.index') }}"
+    class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active('wali-kelas.rapor') }}"
+    style="color: var(--text-secondary);">
+    <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+    </svg>
+    <span class="sidebar-text">Rapor</span>
+</a>
+<a href="{{ route('wali-kelas.leger-nilai.index') }}"
+    class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active('wali-kelas.leger-nilai') }}"
+    style="color: var(--text-secondary);">
+    <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+            d="M9 17v-6h6v6M9 3v4h6V3m-9 4h12a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2z" />
+    </svg>
+    <span class="sidebar-text">Leger Nilai</span>
 </a>
 @endif
 @endif

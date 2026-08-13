@@ -49,7 +49,7 @@
                             @foreach(['akhlak','kerajinan','kebersihan','kedisiplinan'] as $kategori)
                             <td class="px-4 py-3">
                                 <select name="predikat[{{ $santri->id }}][{{ $kategori }}]" required
-                                    class="px-2.5 py-2 text-sm rounded-lg border
+                                    class="w-20 px-2.5 py-2 text-sm rounded-lg border
                                           border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
                                           text-siakad-dark dark:text-white focus:ring-2 outline-none transition">
                                     @foreach(['A','B','C'] as $huruf)

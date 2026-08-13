@@ -60,6 +60,17 @@ class RaporController extends Controller
 
         $kelasList = $kelasQuery->get();
 
+        // Wali kelas (guru) yang cuma pegang 1 kelas -- skip halaman pilih
+        // kelas, langsung redirect ke kelas itu (mirip alasan sidebar
+        // "Dashboard Wali Kelas" disembunyikan kalau cuma 1 kelas). Cek
+        // !$request->filled('kelas_id') supaya tidak infinite redirect saat
+        // request ini sendiri sudah punya kelas_id (hasil redirect barusan).
+        // Kurikulum/Sysadmin TIDAK diberi shortcut ini -- mereka harus selalu
+        // lihat daftar kelas, walau kebetulan cuma ada 1 kelas di sekolah.
+        if ($user->role === 'guru' && $kelasList->count() === 1 && !$request->filled('kelas_id')) {
+            return redirect()->route('wali-kelas.rapor.index', ['kelas_id' => $kelasList->first()->id]);
+        }
+
         $kelasId  = $request->kelas_id;
         $kelas    = $kelasId ? Kelas::with(['tingkatan', 'waliKelas'])->find($kelasId) : null;
         $santriList = null;

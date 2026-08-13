@@ -9,6 +9,8 @@ use App\Models\TahunAjaran;
 use App\Models\Nilai;
 use App\Models\NilaiAkhir;
 use App\Models\KomponenNilai;
+use App\Models\PenugasanMengajar;
+use App\Models\PredikatSikap;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -336,6 +338,20 @@ class PenilaianService
      *   `peringkat_tampil` null kalau peringkat > 5 -- sesuai template asli,
      *   cuma 5 besar yang peringkatnya ditampilkan di rapor (selain itu "-").
      */
+    /**
+     * Peringkat santri dalam 1 kelas, berdasarkan TOTAL nilai akhir (jumlah
+     * semua mapel) -- sesuai rumus RANK() di template rapor asli, bukan
+     * rata-rata (urutannya sama saja selama semua santri dinilai di jumlah
+     * mapel yang sama, tapi disamakan persis biar konsisten dengan template).
+     *
+     * Peringkat dihitung standar ala Excel RANK(): nilai sama dapat peringkat
+     * sama, peringkat berikutnya "melompat" sesuai jumlah yang seri (bukan
+     * peringkat rapat/dense).
+     *
+     * @return array [santri_id => ['jumlah' => float, 'peringkat' => int, 'peringkat_tampil' => int|null]]
+     *   `peringkat_tampil` null kalau peringkat > 5 -- sesuai template asli,
+     *   cuma 5 besar yang peringkatnya ditampilkan di rapor (selain itu "-").
+     */
     public function getRankingKelas(Kelas $kelas, TahunAjaran $tahunAjaran): array
     {
         $santriList = $kelas->santri;
@@ -359,5 +375,115 @@ class PenilaianService
         }
 
         return $hasil;
+    }
+
+    /**
+     * Rakit data leger nilai (Daftar Kumpulan Nilai Semester) 1 kelas penuh --
+     * semua santri x semua mapel yang ditugaskan ke kelas ini, sekali tampil.
+     * Beda dari getRekapNilaiKelas() (yang scope-nya 1 kelas x 1 mapel, dipakai
+     * guru buat input nilai) -- ini scope-nya 1 kelas x SEMUA mapel, dipakai
+     * wali kelas & kurikulum buat rekap akhir semester.
+     *
+     * Banyak bagian di sini SENGAJA reuse method lain di service ini
+     * (getRankingKelas, getPersentaseKehadiranTotal) supaya angka Jumlah/
+     * Peringkat/Ketidakhadiran konsisten dengan yang dipakai di rapor --
+     * jangan hitung ulang dengan formula terpisah, nanti bisa beda hasil
+     * antara leger dan rapor untuk kombinasi santri+mapel yang sama.
+     *
+     * Mapel yang jadi kolom = mapel yang ADA PENUGASAN MENGAJAR-nya ke kelas
+     * ini di tahun ajaran ini (pola sama persis seperti RaporArabService::rakit()),
+     * BUKAN "semua mata pelajaran aktif" -- supaya mapel yang memang tidak
+     * diajarkan di kelas ini tidak ikut muncul kolomnya.
+     *
+     * @return array{mapelList: \Illuminate\Support\Collection, kkmPerMapel: \Illuminate\Support\Collection, rows: array}
+     */
+    public function getLegerKelas(Kelas $kelas, TahunAjaran $ta): array
+    {
+        $mapelIds = PenugasanMengajar::where('kelas_id', $kelas->id)
+            ->where('tahun_ajaran_id', $ta->id)
+            ->distinct()
+            ->pluck('mata_pelajaran_id');
+
+        $mapelList = MataPelajaran::whereIn('id', $mapelIds)
+            ->orderBy('nama')
+            ->get();
+
+        $tingkatanId = $kelas->tingkatan_id;
+        $kkmPerMapel = $mapelList->mapWithKeys(
+            fn($m) => [$m->id => $m->kkmUntukTingkatan($tingkatanId)]
+        );
+
+        $santriList = $kelas->santri()->orderBy('nama_lengkap')->get();
+
+        $nilaiAkhirMap = NilaiAkhir::where('kelas_id', $kelas->id)
+            ->where('tahun_ajaran_id', $ta->id)
+            ->whereIn('mata_pelajaran_id', $mapelIds)
+            ->whereIn('santri_id', $santriList->pluck('id'))
+            ->get()
+            ->groupBy('santri_id');
+
+        // Reuse method yang sama dengan yang dipakai RaporArabService, supaya
+        // Jumlah & Peringkat di leger SELALU sinkron dengan yang di rapor.
+        $ranking = $this->getRankingKelas($kelas, $ta);
+
+        $predikatSikapMap = PredikatSikap::where('tahun_ajaran_id', $ta->id)
+            ->whereIn('santri_id', $santriList->pluck('id'))
+            ->get()
+            ->keyBy('santri_id');
+
+        $rows = [];
+        foreach ($santriList as $santri) {
+            $nilaiPerMapel = $nilaiAkhirMap[$santri->id] ?? collect();
+            $nilaiByMapelId = $nilaiPerMapel->keyBy('mata_pelajaran_id');
+
+            $nilaiTiapMapel = [];
+            foreach ($mapelList as $mapel) {
+                $nilaiTiapMapel[$mapel->id] = $nilaiByMapelId[$mapel->id]->nilai_akhir ?? null;
+            }
+
+            $jumlahMapelDinilai = $nilaiPerMapel->count();
+            $dataRanking        = $ranking[$santri->id] ?? ['jumlah' => 0, 'peringkat' => null, 'peringkat_tampil' => null];
+            $kehadiran           = $this->getPersentaseKehadiranTotal($santri, $kelas, $ta);
+            $predikatSikap       = $predikatSikapMap[$santri->id] ?? null;
+
+            $rows[] = [
+                'santri'      => $santri,
+                'nilai'       => $nilaiTiapMapel,
+                'jumlah'      => $dataRanking['jumlah'],
+                // Rata-rata dihitung dari mapel yang SUDAH ADA nilainya saja
+                // (meniru semantik AVERAGE() Excel yang skip cell kosong),
+                // bukan dibagi total kolom mapel -- kalau ada mapel yang
+                // nilainya belum diisi sama sekali, tidak menurunkan rata-rata
+                // secara tidak adil.
+                'rata_rata'   => $jumlahMapelDinilai > 0
+                    ? round($dataRanking['jumlah'] / $jumlahMapelDinilai, 1)
+                    : 0,
+                'peringkat'   => $dataRanking['peringkat_tampil'] ?? $dataRanking['peringkat'],
+                'kehadiran'   => $kehadiran,
+                'kepribadian' => [
+                    'akhlaq'       => $this->predikatSikapKata($predikatSikap?->akhlak),
+                    'kerajinan'    => $this->predikatSikapKata($predikatSikap?->kerajinan),
+                    'kebersihan'   => $this->predikatSikapKata($predikatSikap?->kebersihan),
+                    'kedisiplinan' => $this->predikatSikapKata($predikatSikap?->kedisiplinan),
+                ],
+            ];
+        }
+
+        return [
+            'mapelList'   => $mapelList,
+            'kkmPerMapel' => $kkmPerMapel,
+            'rows'        => $rows,
+        ];
+    }
+
+    /**
+     * Kepribadian A/B/C -> tetap huruf, cuma normalisasi nilai kosong jadi '-'.
+     * SENGAJA method terpisah dari RaporArabService::predikatSikapKata() yang
+     * mengonversi ke kata Arab (ممتاز/جيد/مقبول) -- leger nilai formatnya latin,
+     * jadi cukup huruf A/B/C polos seperti di contoh gambar leger.
+     */
+    private function predikatSikapKata(?string $huruf): string
+    {
+        return in_array($huruf, ['A', 'B', 'C'], true) ? $huruf : '-';
     }
 }

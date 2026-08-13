@@ -32,7 +32,7 @@
                     {{ $kelas->jumlah_santri }} santri
                 </span>
             </div>
-            <div class="p-4 grid grid-cols-3 gap-2">
+            <div class="p-4 grid grid-cols-4 gap-2">
                 <a href="{{ route('wali-kelas.predikat-sikap.index', $kelas) }}"
                     class="flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl text-center transition
                           border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -59,6 +59,15 @@
                             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
                     <span class="text-[11px] font-medium text-siakad-dark dark:text-gray-200">Rapor</span>
+                </a>
+                <a href="{{ route('wali-kelas.leger-nilai.show', $kelas) }}"
+                    class="flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl text-center transition
+                          border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <svg class="w-5 h-5" style="color: var(--siakad-primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+                            d="M9 17v-6h6v6M9 3v4h6V3m-9 4h12a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2z" />
+                    </svg>
+                    <span class="text-[11px] font-medium text-siakad-dark dark:text-gray-200">Leger Nilai</span>
                 </a>
             </div>
         </div>
