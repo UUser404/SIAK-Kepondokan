@@ -147,6 +147,27 @@ class NilaiController extends Controller
         $kelas         = Kelas::findOrFail($request->kelas_id);
         $mataPelajaran = MataPelajaran::findOrFail($request->mata_pelajaran_id);
 
+        // Guard: pastikan mapel ini BENAR ditugaskan ke kelas ini (Penugasan
+        // Mengajar) sebelum kalkulasi jalan -- kalau tidak, hitungNilaiAkhirBulk()
+        // tetap akan jalan untuk semua santri di kelas itu walau tidak ada satupun
+        // baris Nilai yang cocok, hasilnya nilai_akhir=0 untuk semua santri yang
+        // TIDAK BISA DIBEDAKAN dari "beneran dinilai nol". finalizeKelas() dan
+        // finalizeAll() di bawah sudah aman dari awal (mapel-nya difilter dari
+        // Penugasan Mengajar sebelum loop) -- method ini yang tadinya belum
+        // dijaga sama sekali, cuma validasi mapel-nya ada di database, bukan
+        // ada-tidaknya penugasan ke kelas ini.
+        $ditugaskan = PenugasanMengajar::where('kelas_id', $kelas->id)
+            ->where('mata_pelajaran_id', $mataPelajaran->id)
+            ->when($ta, fn($q) => $q->where('tahun_ajaran_id', $ta->id))
+            ->exists();
+
+        if (!$ditugaskan) {
+            return back()->with(
+                'error',
+                "Mata pelajaran \"{$mataPelajaran->nama}\" tidak ditugaskan ke kelas \"{$kelas->nama}\" di tahun ajaran aktif -- kalkulasi dibatalkan supaya tidak menghasilkan nilai 0 untuk santri yang memang tidak mempelajari mapel ini."
+            );
+        }
+
         $results = $this->penilaianService->hitungNilaiAkhirBulk($kelas, $mataPelajaran, $ta);
 
         // FIX: $results itu array (satu entri per santri), sebelumnya diselipkan

@@ -118,8 +118,6 @@ class SantriImportService
         $record['santri_id'] = $santri->id;
         $record['nama_lama'] = $santri->nama_lengkap;
         $record['nama_arab_lama'] = $santri->nama_arab ?? '-';
-        $record['nama_arab_lama'] = $santri->nama_arab ?? '-';
-        $record['nama_arab_lama'] = $santri->nama_arab ?? '-';
 
         // Check nama berbeda dengan similarity
         if (!empty($namaLengkap)) {
@@ -237,13 +235,6 @@ class SantriImportService
                 // Update Nama Arab kalau diisi -- tidak digerbang similarity check
                 // seperti nama_lengkap (field ini sering kosong dari awal, jadi
                 // "beda" dari kosong selalu wajar, bukan indikasi typo).
-                if (!empty($record['nama_arab_baru'])) {
-                    $santri->update(['nama_arab' => $record['nama_arab_baru']]);
-                }
-
-                // Update nama Arab kalau diisi -- tidak pakai cek similarity seperti
-                // nama Latin (field ini kebanyakan masih kosong sebelum diisi lewat
-                // import, jadi langsung ditimpa kalau ada isinya di Excel).
                 if (!empty($record['nama_arab_baru'])) {
                     $santri->update(['nama_arab' => $record['nama_arab_baru']]);
                 }

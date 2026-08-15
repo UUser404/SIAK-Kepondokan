@@ -47,6 +47,7 @@ class SantriExport implements FromQuery, WithHeadings, WithMapping, WithStyles, 
             'NIS',
             'NISN',
             'Nama Lengkap',
+            'Nama Arab',
             'Nama Panggilan',
             'L/P',
             'Tempat Lahir',
@@ -77,6 +78,7 @@ class SantriExport implements FromQuery, WithHeadings, WithMapping, WithStyles, 
             $santri->nis,
             $santri->nisn ?? '-',
             $santri->nama_lengkap,
+            $santri->nama_arab ?? '-',
             $santri->nama_panggilan ?? '-',
             $santri->jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan',
             $santri->tempat_lahir ?? '-',
@@ -105,22 +107,23 @@ class SantriExport implements FromQuery, WithHeadings, WithMapping, WithStyles, 
     public function columnWidths(): array
     {
         return [
-            'A' => 5,
-            'B' => 15,
-            'C' => 15,
-            'D' => 30,
-            'E' => 15,
-            'F' => 12,
-            'G' => 18,
-            'H' => 15,
-            'I' => 10,
-            'J' => 18,
-            'K' => 12,
-            'L' => 10,
-            'M' => 25,
-            'N' => 25,
-            'O' => 18,
-            'P' => 12,
+            'A' => 5,   // No
+            'B' => 15,  // NIS
+            'C' => 15,  // NISN
+            'D' => 30,  // Nama Lengkap
+            'E' => 25,  // Nama Arab (baru -- lebih lebar dari kolom teks biasa)
+            'F' => 15,  // Nama Panggilan
+            'G' => 12,  // L/P
+            'H' => 18,  // Tempat Lahir
+            'I' => 15,  // Tanggal Lahir
+            'J' => 10,  // Kelas
+            'K' => 18,  // Asrama
+            'L' => 12,  // Kamar
+            'M' => 10,  // Angkatan
+            'N' => 25,  // Asal Sekolah
+            'O' => 25,  // Nama Wali
+            'P' => 18,  // No. HP Wali
+            'Q' => 12,  // Status
         ];
     }
 }

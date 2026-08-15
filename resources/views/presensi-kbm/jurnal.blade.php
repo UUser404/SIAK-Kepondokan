@@ -49,7 +49,7 @@
         ['Santri Alpa', $totalSantriAlpa, 'red'],
         ] as [$label, $value, $color])
         <div class="card-saas p-5 text-center">
-            <p class="text-2xl font-bold text-{{ $color }}-600 $color }}-400"
+            <p class="text-2xl font-bold text-{{ $color }}-600 dark:text-{{ $color }}-400"
                 @if($color==='siakad-primary' ) style="color: var(--siakad-primary);" @endif>
                 {{ $value }}
             </p>
@@ -134,7 +134,7 @@
                         </td>
                         @foreach(['hadir'=>'green','sakit'=>'blue','izin'=>'yellow','alpa'=>'red'] as $s => $c)
                         <td class="px-5 py-3 text-center font-semibold
-                               text-{{ $c }}-600 $c }}-400">
+                               text-{{ $c }}-600 dark:text-{{ $c }}-400">
                             {{ $p->presensiKbm->where('status', $s)->count() }}
                         </td>
                         @endforeach
@@ -164,7 +164,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="px-5 py-12 text-center text-sm
+                        <td colspan="8" class="px-5 py-12 text-center text-sm
                                            text-siakad-secondary">
                             Belum ada pertemuan bulan ini
                         </td>

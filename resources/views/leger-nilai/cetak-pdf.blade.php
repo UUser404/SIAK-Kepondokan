@@ -183,7 +183,6 @@
             border-top: 1px solid #1B3C53;
             padding-top: 3px;
             font-weight: bold;
-            margin-top: 55px;
         }
     </style>
 </head>
@@ -227,15 +226,15 @@
         <thead>
             <tr>
                 <th rowspan="2" style="width: 20px;">No</th>
-                <th rowspan="2" style="width: 80px;">Induk</th>
-                <th rowspan="2" style="min-width: 100px;">Nama Santri</th>
-                <th rowspan="2" style="min-width: 100px;">Nama Arab</th>
+                <th rowspan="2" style="width: 48px;">Induk</th>
+                <th rowspan="2" style="min-width: 130px;">Nama Santri</th>
+                <th rowspan="2" style="min-width: 90px;">Nama Arab</th>
                 @foreach($data['mapelList'] as $mapel)
-                <th rowspan="2" class="rotate" style="mpdf-text-rotate: 90; width: 20px;">{{ $mapel->nama }}</th>
+                <th rowspan="2" class="rotate" style="mpdf-text-rotate: 90;">{{ $mapel->nama }}</th>
                 @endforeach
-                <th rowspan="2" style="width: 40px;">Jumlah</th>
+                <th rowspan="2" style="width: 26px;">Jumlah</th>
                 <th rowspan="2" style="width: 24px;">Rata²</th>
-                <th rowspan="2" style="width: 24px;">Peringkat</th>
+                <th rowspan="2" style="width: 20px;">Peringkat</th>
                 <th colspan="3">Ketidakhadiran (Hari)</th>
                 <th colspan="4">Kepribadian</th>
             </tr>

@@ -5,7 +5,15 @@
     <x-slot name="header">Nilai Ekstrakurikuler</x-slot>
 
     <div class="mb-6 flex items-center gap-3">
-        <a href="{{ route('wali-kelas.dashboard') }}"
+        {{-- Tombol kembali pakai history.back() -- lihat catatan lengkap di
+             wali-kelas/predikat-sikap.blade.php (bug & fix persis sama):
+             kalau wali kelas cuma pegang 1 kelas, link "Dashboard Wali
+             Kelas" di sidebar disembunyikan, jadi hardcode ke
+             wali-kelas.dashboard malah melempar user ke halaman yang
+             seharusnya tidak dia akses. history.back() selalu benar,
+             baik user datang dari sidebar langsung maupun dari dashboard
+             card (kasus >1 kelas). --}}
+        <a href="{{ route('guru.dashboard') }}" onclick="history.back(); return false;"
             class="p-2 rounded-xl border border-gray-200 dark:border-gray-700
               text-siakad-secondary dark:text-gray-400
               hover:bg-gray-50 dark:hover:bg-gray-700 transition">
