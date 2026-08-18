@@ -17,7 +17,7 @@
             <div>
                 <label class="block text-xs text-siakad-secondary mb-1">Bulan</label>
                 <select name="bulan" onchange="this.form.submit()"
-                    class="px-3 py-2.5 text-sm rounded-xl border border-gray-200
+                    class="w-36 px-3 py-2.5 text-sm rounded-xl border border-gray-200
                            bg-gray-50 text-siakad-dark
                            focus:ring-2 outline-none transition">
                     @foreach(range(1,12) as $b)
@@ -30,7 +30,7 @@
             <div>
                 <label class="block text-xs text-siakad-secondary mb-1">Tahun</label>
                 <select name="tahun" onchange="this.form.submit()"
-                    class="px-3 py-2.5 text-sm rounded-xl border border-gray-200
+                    class="w-24 px-3 py-2.5 text-sm rounded-xl border border-gray-200
                            bg-gray-50 text-siakad-dark
                            focus:ring-2 outline-none transition">
                     @foreach(range(now()->year, now()->year - 2) as $y)
@@ -140,7 +140,7 @@
                         @endforeach
                         <td class="px-5 py-3">
                             <div class="flex items-center gap-2 justify-end">
-                                <a href="{{ route('guru.presensi.show', $p) }}"
+                                <a href="{{ route('guru.jurnal.show', $p) }}"
                                     class="px-2.5 py-1 text-xs font-medium rounded-lg transition-colors
                                            border border-gray-200 text-siakad-dark hover:bg-gray-100">
                                     Lihat

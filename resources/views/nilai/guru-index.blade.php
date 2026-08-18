@@ -13,7 +13,7 @@
 
     {{-- Tahun ajaran info --}}
     @if($ta)
-    <div class="mb-6 p-4 rounded-2xl bg-gradient-to-r from-siakad-primary to-siakad-dark">
+    <div class="mb-6 p-4 rounded-2xl" style="background: linear-gradient(to right, var(--siakad-primary), var(--siakad-dark));">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

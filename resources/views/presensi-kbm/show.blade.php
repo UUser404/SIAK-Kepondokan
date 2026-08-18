@@ -28,7 +28,7 @@
         </div>
     </div>
 
-    <div class="space-y-5 max-w-3xl">
+    <div class="space-y-5">
 
         {{-- Info card --}}
         <div class="card-saas overflow-hidden">

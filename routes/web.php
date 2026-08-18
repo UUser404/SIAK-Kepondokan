@@ -107,6 +107,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Jurnal Mengajar
         Route::get('jurnal', [\App\Http\Controllers\Guru\JurnalController::class, 'index'])->name('jurnal.index');
+        Route::get('jurnal/{pertemuan}', [\App\Http\Controllers\Guru\JurnalController::class, 'show'])->name('jurnal.show');
 
         // AI Advisor
         Route::get('ai-advisor', [\App\Http\Controllers\AiAdvisorController::class, 'index'])->name('ai.index');
