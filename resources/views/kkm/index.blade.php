@@ -12,11 +12,9 @@
         </p>
     </div>
 
-    @if(session('success'))
-    <div class="mb-4 px-4 py-3 rounded-xl text-sm" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;">
-        {{ session('success') }}
-    </div>
-    @endif
+    {{-- Alert success TIDAK perlu di sini -- layouts/app.blade.php sudah
+         menampilkan session('success') otomatis untuk semua halaman.
+         Nambah blok yang sama di sini bikin pesannya muncul dobel. --}}
 
     <form method="POST" action="{{ route('admin.kkm.store') }}">
         @csrf

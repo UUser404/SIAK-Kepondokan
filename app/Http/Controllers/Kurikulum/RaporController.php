@@ -13,7 +13,7 @@ use App\Models\MataPelajaran;
 use App\Models\PresensiKbm;
 use App\Models\Pertemuan;
 use App\Services\RaporArabService;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Mpdf\Mpdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -59,6 +59,17 @@ class RaporController extends Controller
         }
 
         $kelasList = $kelasQuery->get();
+
+        // Wali kelas (guru) yang cuma pegang 1 kelas -- skip halaman pilih
+        // kelas, langsung redirect ke kelas itu (mirip alasan sidebar
+        // "Dashboard Wali Kelas" disembunyikan kalau cuma 1 kelas). Cek
+        // !$request->filled('kelas_id') supaya tidak infinite redirect saat
+        // request ini sendiri sudah punya kelas_id (hasil redirect barusan).
+        // Kurikulum/Sysadmin TIDAK diberi shortcut ini -- mereka harus selalu
+        // lihat daftar kelas, walau kebetulan cuma ada 1 kelas di sekolah.
+        if ($user->role === 'guru' && $kelasList->count() === 1 && !$request->filled('kelas_id')) {
+            return redirect()->route('wali-kelas.rapor.index', ['kelas_id' => $kelasList->first()->id]);
+        }
 
         $kelasId  = $request->kelas_id;
         $kelas    = $kelasId ? Kelas::with(['tingkatan', 'waliKelas'])->find($kelasId) : null;
@@ -125,6 +136,16 @@ class RaporController extends Controller
         $santri->load(['santriKelas.kelas.tingkatan', 'penempatanKamar.kamar.asrama']);
         $kelasAktif = $santri->santriKelas->where('status', 'aktif')->first()?->kelas;
 
+        // KKM per tingkatan (bukan lagi kolom mata_pelajaran.kkm global) --
+        // dihitung sekali di sini untuk semua baris nilai, mengikuti pola yang
+        // sama persis dengan RaporArabService::rakit(). Ditempel sebagai
+        // atribut sementara (tidak disimpan ke DB) di tiap objek NilaiAkhir
+        // supaya blade tinggal baca $na->kkm_tingkatan.
+        $tingkatanId = $kelasAktif?->tingkatan_id;
+        foreach ($nilaiAkhir as $na) {
+            $na->kkm_tingkatan = $na->mataPelajaran->kkmUntukTingkatan($tingkatanId);
+        }
+
         $rataRata   = round($nilaiAkhir->avg('nilai_akhir') ?? 0, 1);
         $totalTuntas = $nilaiAkhir->where('tuntas', true)->count();
         $totalMapel  = $nilaiAkhir->count();
@@ -142,7 +163,7 @@ class RaporController extends Controller
     }
 
     /**
-     * Cetak rapor PDF
+     * Cetak rapor PDF (Rapor Biasa/Latin)
      */
     public function cetak(Santri $santri)
     {
@@ -158,23 +179,42 @@ class RaporController extends Controller
         $santri->load(['santriKelas.kelas.tingkatan']);
         $kelasAktif = $santri->santriKelas->where('status', 'aktif')->first()?->kelas;
 
-        $pdf = Pdf::loadView('rapor.cetak-pdf', compact(
+        // Sama seperti di show() -- lihat catatan di sana.
+        $tingkatanId = $kelasAktif?->tingkatan_id;
+        foreach ($nilaiAkhir as $na) {
+            $na->kkm_tingkatan = $na->mataPelajaran->kkmUntukTingkatan($tingkatanId);
+        }
+
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'orientation' => 'P',
+            'default_font' => 'dejavusans',
+        ]);
+
+        $html = view('rapor.cetak-pdf', compact(
             'santri',
             'nilaiAkhir',
             'kelasAktif',
             'ta'
-        ))->setPaper('a4', 'portrait');
+        ))->render();
 
-        $namaFileTa = str_replace(['/', '\\'], '-', $ta?->nama ?? 'ta');
+        $mpdf->WriteHTML($html);
 
-        return $pdf->download("rapor-{$santri->nis}-{$namaFileTa}.pdf");
+        // Nama file: KELAS_NAMA_SISWA.pdf
+        $namaKelas = $kelasAktif?->nama ?? 'tanpa-kelas';
+        $namaSantri = str_replace(['/', '\\', ' '], '_', $santri->nama_lengkap);
+        $namaFile = "{$namaKelas}_{$namaSantri}.pdf";
+
+        return $mpdf->Output($namaFile, 'D');
     }
 
     /**
-     * Rapor Arab (2 halaman, format KMI) -- BELUM DITEST render Arabnya di
-     * DomPDF (barryvdh/laravel-dompdf biasa). Kalau huruf Arab keluar
-     * terputus-putus/tidak tersambung, itu keterbatasan DomPDF standar --
-     * lihat catatan di DEVELOPER_GUIDE.md soal opsi pindah ke omaralalwi/gpdf.
+     * Cetak Rapor Arab (format "كشف الدرجة" 2 halaman)
+     * Menggunakan mPDF dengan autoArabic = true untuk support Arabic shaping.
+     * CATATAN: header/footer TIDAK pakai mekanisme native mPDF lagi —
+     * blade sudah menghardcode ulang blok data murid di tiap halaman,
+     * jadi margin di sini disamakan dengan @page di blade (15mm semua sisi).
      */
     public function cetakArab(Santri $santri)
     {
@@ -188,11 +228,32 @@ class RaporController extends Controller
 
         $data = $this->raporArabService->rakit($santri, $kelasAktif, $ta);
 
-        $pdf = Pdf::loadView('rapor.cetak-arab-pdf', compact('data'))
-            ->setPaper('a4', 'portrait');
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'orientation' => 'P',
+            'default_font' => 'dejavusans',
+            'autoScriptToLang' => true,
+            'autoLangToFont' => true,
+            'margin_top' => 34,
+            'margin_bottom' => 20,
+            'margin_left' => 15,
+            'margin_right' => 15,
+            'margin_header' => 8,
+            'margin_footer' => 8,
+        ]);
 
-        $namaFileTa = str_replace(['/', '\\'], '-', $ta->nama);
+        // Aktifkan Arabic shaping
+        $mpdf->autoArabic = true;
+        $mpdf->SetDirectionality('rtl');
 
-        return $pdf->download("rapor-arab-{$santri->nis}-{$namaFileTa}.pdf");
+        $html = view('rapor.cetak-arab-pdf', compact('data'))->render();
+        $mpdf->WriteHTML($html);
+
+        $namaKelas = $kelasAktif->nama ?? 'tanpa-kelas';
+        $namaSantri = str_replace(['/', '\\', ' '], '_', $santri->nama_lengkap);
+        $namaFile = "{$namaKelas}_RAPOR_SYARI_{$namaSantri}.pdf";
+
+        return $mpdf->Output($namaFile, 'D');
     }
 }

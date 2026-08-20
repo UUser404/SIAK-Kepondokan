@@ -5,6 +5,7 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
+use App\Models\PenugasanMengajar;
 use App\Models\Pertemuan;
 use App\Models\PresensiKbm;
 use App\Models\TahunAjaran;
@@ -13,6 +14,29 @@ use Illuminate\Support\Facades\Auth;
 
 class JurnalController extends Controller
 {
+    /**
+     * Guard akses -- SENGAJA duplikat logic yang sama persis dengan
+     * PresensiController::guruBolehAkses() (bukan di-share lewat trait/helper)
+     * karena PresensiController::guruBolehAkses() itu private, dan project
+     * ini belum punya pola shared-helper untuk guard semacam ini di modul
+     * lain manapun (RaporController & LegerController juga masing-masing
+     * punya method authorize-nya sendiri, bukan di-share). Kalau nanti mau
+     * dirapikan jadi 1 trait/helper, JANGAN cuma rapikan yang ini -- rapikan
+     * sekalian 3 tempat lain yang polanya sama (Rapor, Leger, Presensi).
+     */
+    private function guruBolehAkses(int $kelasId, int $mapelId): bool
+    {
+        if (Auth::user()->isManajemen()) return true;
+
+        $ta = TahunAjaran::aktif();
+
+        return PenugasanMengajar::where('guru_id', Auth::id())
+            ->where('kelas_id', $kelasId)
+            ->where('mata_pelajaran_id', $mapelId)
+            ->when($ta, fn($q) => $q->where('tahun_ajaran_id', $ta->id))
+            ->exists();
+    }
+
     /**
      * Jurnal mengajar — rekap semua pertemuan guru ini per mapel/kelas
      */
@@ -61,5 +85,42 @@ class JurnalController extends Controller
             'bulan',
             'tahun'
         ));
+    }
+
+    /**
+     * Detail 1 entri jurnal -- fokus ke topik/materi/catatan mengajar, BUKAN
+     * tabel kehadiran lengkap seperti presensi.show. Kehadiran cuma
+     * ditampilkan ringkas (jumlah H/S/I/A), sementara detail nama santri
+     * cuma ditampilkan untuk yang TIDAK hadir (sakit/izin/alpa) -- santri
+     * yang hadir tidak perlu disebut satu-satu, itu "kondisi normal".
+     */
+    public function show(Pertemuan $pertemuan)
+    {
+        abort_if(!$this->guruBolehAkses($pertemuan->kelas_id, $pertemuan->mata_pelajaran_id), 403);
+
+        $pertemuan->load(['mataPelajaran', 'kelas', 'presensiKbm.santri', 'guru']);
+
+        $rekap = [
+            'hadir' => $pertemuan->presensiKbm->where('status', 'hadir')->count(),
+            'sakit' => $pertemuan->presensiKbm->where('status', 'sakit')->count(),
+            'izin'  => $pertemuan->presensiKbm->where('status', 'izin')->count(),
+            'alpa'  => $pertemuan->presensiKbm->where('status', 'alpa')->count(),
+        ];
+
+        // Cuma santri yang TIDAK hadir -- ini yang perlu disebut namanya.
+        // Diurutkan bertingkat: status dulu (alpa > izin > sakit, yang lebih
+        // "serius" duluan), baru nama -- pakai sintaks multi-kriteria
+        // sortBy([callback, callback]) Collection, BUKAN chain sortBy()
+        // berkali-kali (itu saling menimpa, bukan gabung jadi 1 urutan).
+        $urutanStatus = ['alpa' => 1, 'izin' => 2, 'sakit' => 3];
+        $tidakHadir = $pertemuan->presensiKbm
+            ->whereIn('status', ['sakit', 'izin', 'alpa'])
+            ->sortBy([
+                fn($a, $b) => ($urutanStatus[$a->status] ?? 9) <=> ($urutanStatus[$b->status] ?? 9),
+                fn($a, $b) => $a->santri->nama_lengkap <=> $b->santri->nama_lengkap,
+            ])
+            ->values();
+
+        return view('presensi-kbm.jurnal-show', compact('pertemuan', 'rekap', 'tidakHadir'));
     }
 }

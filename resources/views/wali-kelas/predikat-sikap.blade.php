@@ -5,7 +5,18 @@
     <x-slot name="header">Predikat Sikap</x-slot>
 
     <div class="mb-6 flex items-center gap-3">
-        <a href="{{ route('wali-kelas.dashboard') }}"
+        {{-- Tombol kembali pakai history.back() (bukan hardcode ke
+             wali-kelas.dashboard) -- kalau wali kelas cuma pegang 1 kelas,
+             link "Dashboard Wali Kelas" di sidebar DISEMBUNYIKAN (lihat
+             sidebar-nav.blade.php), jadi user sebenarnya datang LANGSUNG
+             dari sidebar, bukan dari dashboard. Kalau tombol ini di-hardcode
+             ke wali-kelas.dashboard, user malah dilempar ke halaman yang
+             "harusnya" tidak dia akses. history.back() otomatis balik ke
+             manapun user datang, benar untuk kedua kasus (1 kelas atau
+             >1 kelas) tanpa perlu hitung ulang jumlah kelas di sini.
+             href tetap diisi (bukan "#") sebagai fallback kalau JS mati
+             atau dibuka di tab baru lewat klik-kanan. --}}
+        <a href="{{ route('guru.dashboard') }}" onclick="history.back(); return false;"
             class="p-2 rounded-xl border border-gray-200 dark:border-gray-700
               text-siakad-secondary dark:text-gray-400
               hover:bg-gray-50 dark:hover:bg-gray-700 transition">
@@ -49,7 +60,7 @@
                             @foreach(['akhlak','kerajinan','kebersihan','kedisiplinan'] as $kategori)
                             <td class="px-4 py-3">
                                 <select name="predikat[{{ $santri->id }}][{{ $kategori }}]" required
-                                    class="px-2.5 py-2 text-sm rounded-lg border
+                                    class="w-20 px-2.5 py-2 text-sm rounded-lg border
                                           border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
                                           text-siakad-dark dark:text-white focus:ring-2 outline-none transition">
                                     @foreach(['A','B','C'] as $huruf)

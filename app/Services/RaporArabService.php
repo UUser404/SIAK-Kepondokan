@@ -1,10 +1,6 @@
 <?php
 // ============================================================
 // app/Services/RaporArabService.php
-// Merakit semua data untuk 1 rapor santri (2 halaman), sesuai rumus
-// PERSIS dari sheet "RAPORT" pada file template asli yang diberikan
-// pengguna (RAPORT_7A_GANJIL_2025_2026.xlsx). Jangan ubah logic
-// predikat/kesimpulan di sini tanpa cek ulang ke file itu.
 // ============================================================
 namespace App\Services;
 
@@ -15,6 +11,8 @@ use App\Models\PenugasanMengajar;
 use App\Models\PredikatSikap;
 use App\Models\Santri;
 use App\Models\TahunAjaran;
+use App\Models\Ekstrakurikuler;
+use App\Models\NilaiEkstrakurikuler;
 
 class RaporArabService
 {
@@ -27,10 +25,7 @@ class RaporArabService
     {
         $tingkatanId = $kelas->tingkatan_id;
 
-        // Mapel yang benar ditugaskan (Penugasan Mengajar) untuk kelas ini --
-        // konsisten dengan sumber "mapel per kelas" yang sudah dipakai di
-        // dashboard Kurikulum. Mapel tanpa `kategori` diisi TIDAK ikut tampil
-        // di rapor (keputusan desain -- kategori wajib buat pengelompokan).
+        // Mapel yang benar ditugaskan untuk kelas ini
         $mapelIds = PenugasanMengajar::where('kelas_id', $kelas->id)
             ->where('tahun_ajaran_id', $ta->id)
             ->distinct()
@@ -65,30 +60,59 @@ class RaporArabService
             ];
         }
 
-        // Kelompokkan per kategori (urutan tampil di rapor: per kategori,
-        // masing-masing baris mapelnya di bawahnya -- sesuai template asli).
         $baris = collect($baris)->groupBy('kategori');
 
-        // Ranking & jumlah -- dari PenilaianService, rumus sama persis
-        // RANK() di template asli (lihat catatan di method itu).
         $ranking = $this->penilaianService->getRankingKelas($kelas, $ta);
         $dataRanking = $ranking[$santri->id] ?? ['jumlah' => 0, 'peringkat_tampil' => null];
         $jumlahMapel = $mapelList->count();
         $rataRata = $jumlahMapel > 0 ? round($dataRanking['jumlah'] / $jumlahMapel, 1) : 0;
 
-        // Kepribadian + ketidakhadiran (dari PredikatSikap, default auto-hitung
-        // presensi kalau belum di-override manual wali kelas).
         $predikatSikap = PredikatSikap::where('santri_id', $santri->id)
             ->where('tahun_ajaran_id', $ta->id)
             ->first();
 
         $kehadiranAuto = $this->penilaianService->getPersentaseKehadiranTotal($santri, $kelas, $ta);
 
+        // ============================================================
+        // 🔥 DATA TAMBAHAN UNTUK FORMAT BARU
+        // ============================================================
+
+        // 1. Ekstrakurikuler
+        $ekstrakurikuler = NilaiEkstrakurikuler::where('santri_id', $santri->id)
+            ->where('tahun_ajaran_id', $ta->id)
+            ->with('ekstrakurikuler')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'nama' => $item->ekstrakurikuler->nama ?? '-',
+                    'keterangan' => $item->keterangan ?? 'مشاركة جيدة',
+                ];
+            })
+            ->toArray();
+
+        // 2. Catatan Wali Kelas (dari PredikatSikap atau field tersendiri)
+        $catatanWali = $predikatSikap?->catatan_wali ?? '-';
+
+        // 3. Fase berdasarkan tingkatan
+        $fase = $this->getFase($kelas);
+
+        // 4. Keterangan Kenaikan Kelas
+        $keteranganKenaikan = $this->getKeteranganKenaikan($rataRata);
+
+        // 5. Kokurikuler (hardcode dulu atau ambil dari model)
+        $kokurikulerText = $this->getKokurikulerText($santri, $ta);
+
+        // 6. NIP
+        $waliKelasNip = $kelas->waliKelas?->nip ?? '-';
+        $kepalaSekolahNip = $ta->nip_kepala_sekolah ?? '-';
+
         return [
             'santri' => [
                 'nama_latin' => $santri->nama_lengkap,
                 'nama_arab'  => $santri->nama_arab,
                 'nis'        => $santri->nis,
+                'nisn'       => $santri->nisn ?? '-',
+                'alamat'     => $santri->alamat ?? '-',
             ],
             'kelas' => $kelas,
             'ta'    => $ta,
@@ -109,20 +133,78 @@ class RaporArabService
                 'alpa'  => $predikatSikap?->alpa_override ?? $kehadiranAuto['alpa'],
             ],
             'kesimpulan' => $rataRata >= 60 ? 'ناجح' : 'راسب',
-            'wali_kelas' => $kelas->waliKelas?->nama_arab,
-            'kepala_sekolah' => $ta->nama_kepala_sekolah_arab,
-            'mudir' => $ta->nama_mudir_arab,
+            'wali_kelas' => $kelas->waliKelas?->nama_arab ?? $kelas->waliKelas?->name ?? '-',
+            'wali_kelas_nip' => $waliKelasNip,
+            'kepala_sekolah' => $ta->nama_kepala_sekolah_arab ?? $ta->nama_kepala_sekolah ?? '-',
+            'kepala_sekolah_nip' => $kepalaSekolahNip,
+            'mudir' => $ta->nama_mudir_arab ?? '-',
             'tanggal_masehi' => $ta->tanggal_selesai,
             'tanggal_hijriah' => $ta->tanggal_rapor_hijriah,
+
+            // ============================================================
+            // 🔥 DATA BARU UNTUK FORMAT RAPOR
+            // ============================================================
+            'sekolah_nama' => 'معهد الإسلام الإسلامي للتربية الإسلامية الحديثة',
+            'fase' => $fase,
+            'kokurikuler_text' => $kokurikulerText,
+            'ekstrakurikuler' => $ekstrakurikuler,
+            'catatan_wali_kelas' => $catatanWali,
+            'keterangan_kenaikan' => $keteranganKenaikan,
+            'tanggapan_ortu' => '', // Untuk diisi oleh orang tua nanti
+            'tempat' => 'ثيرون',
         ];
     }
 
     /**
-     * Predikat per mapel -- rumus PERSIS dari sel B10:B22 di sheet RAPORT
-     * template asli:
-     * IF(nilai>=90,"ممتاز", IF(nilai>=kkm+10,"جيد جدا", IF(nilai>kkm,"جيد",
-     * IF(nilai=kkm,"مقبول", IF(nilai=kkm-0.1,"مقبول بالتحسين",
-     * IF(nilai>=1,"راسب","-"))))))
+     * Mendapatkan fase berdasarkan tingkatan
+     */
+    private function getFase(Kelas $kelas): string
+    {
+        $tingkatan = $kelas->tingkatan->nama ?? '';
+
+        $map = [
+            'VII' => 'D',
+            'VIII' => 'D',
+            'IX' => 'D',
+            'X' => 'E',
+            'XI' => 'F',
+            'XII' => 'F',
+        ];
+
+        foreach ($map as $key => $fase) {
+            if (str_contains($tingkatan, $key)) {
+                return $fase;
+            }
+        }
+
+        return '-';
+    }
+
+    /**
+     * Mendapatkan keterangan kenaikan kelas
+     */
+    private function getKeteranganKenaikan(float $rataRata): string
+    {
+        if ($rataRata >= 70) {
+            return 'ينتقل إلى الفصل التالي';
+        } elseif ($rataRata >= 60) {
+            return 'ينتقل إلى الفصل التالي مع تحسين الأداء';
+        }
+        return 'يبقى في نفس الفصل للتحسين';
+    }
+
+    /**
+     * Mendapatkan teks kokurikuler
+     */
+    private function getKokurikulerText(Santri $santri, TahunAjaran $ta): string
+    {
+        // TODO: Ambil dari model Kokurikuler jika sudah ada
+        // Sementara menggunakan teks default
+        return 'الطالب يشارك في الأنشطة المدرسية بنشاط ويظهر روح التعاون مع الزملاء';
+    }
+
+    /**
+     * Predikat per mapel
      */
     private function predikat(?float $nilai, ?int $kkm): string
     {
@@ -140,8 +222,7 @@ class RaporArabService
     }
 
     /**
-     * Deskripsi naratif halaman 2 -- rumus PERSIS dari sel A42:A54 template
-     * asli, cuma bungkus predikat() di atas jadi 1 kalimat.
+     * Deskripsi naratif
      */
     private function deskripsi(?float $nilai, ?int $kkm): string
     {
@@ -154,9 +235,7 @@ class RaporArabService
     }
 
     /**
-     * Kepribadian A/B/C -> kata Arab -- rumus PERSIS dari sel E56:E59
-     * template asli (C->مقبول, B->جيد, A->ممتاز). Catatan: file asli
-     * salah ketik "مقيبول" untuk C, di sini ditulis benar "مقبول".
+     * Kepribadian A/B/C -> kata Arab
      */
     private function predikatSikapKata(?string $huruf): string
     {

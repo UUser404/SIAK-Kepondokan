@@ -99,6 +99,11 @@ class NilaiController extends Controller
             ->get()
             ->keyBy('santri_id');
 
+        // KKM per tingkatan (bukan lagi kolom mata_pelajaran.kkm global) --
+        // dihitung sekali di sini, bukan di blade, supaya kalau nanti perlu
+        // logic tambahan (mis. null-handling) cukup diubah di satu tempat.
+        $kkm = $mataPelajaran->kkmUntukTingkatan($kelas->tingkatan_id);
+
         return view('nilai.show', compact(
             'kelas',
             'mataPelajaran',
@@ -106,6 +111,7 @@ class NilaiController extends Controller
             'santriList',
             'nilaiMap',
             'nilaiAkhirMap',
+            'kkm',
             'ta'
         ));
     }

@@ -35,7 +35,7 @@
             <div>
                 <label class="block text-xs text-siakad-secondary mb-1">Mata Pelajaran</label>
                 <select name="mapel_id" onchange="this.form.submit()"
-                    class="px-3 py-2.5 text-sm rounded-xl border border-gray-200
+                    class="px-7 py-2.5 text-left text-sm rounded-xl border border-gray-200
                            bg-gray-50 text-siakad-dark
                            focus:ring-2 outline-none transition">
                     @foreach($mapelList as $m)

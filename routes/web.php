@@ -72,6 +72,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('rapor/{santri}/cetak', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetak'])->name('rapor.cetak');
         Route::get('rapor/{santri}/cetak-arab', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetakArab'])->name('rapor.cetak-arab');
 
+        // Leger Nilai
+        Route::get('leger-nilai', [\App\Http\Controllers\Kurikulum\LegerController::class, 'index'])->name('leger-nilai.index');
+        Route::get('leger-nilai/{kelas}', [\App\Http\Controllers\Kurikulum\LegerController::class, 'show'])->name('leger-nilai.show');
+        Route::get('leger-nilai/{kelas}/cetak', [\App\Http\Controllers\Kurikulum\LegerController::class, 'cetak'])->name('leger-nilai.cetak');
+        Route::get('leger-nilai/{kelas}/export', [\App\Http\Controllers\Kurikulum\LegerController::class, 'export'])->name('leger-nilai.export');
+
         // AI Advisor
         Route::get('ai-advisor', [\App\Http\Controllers\AiAdvisorController::class, 'index'])->name('ai.index');
         Route::post('ai-advisor/chat', [\App\Http\Controllers\AiAdvisorController::class, 'chat'])->name('ai.chat');
@@ -101,6 +107,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Jurnal Mengajar
         Route::get('jurnal', [\App\Http\Controllers\Guru\JurnalController::class, 'index'])->name('jurnal.index');
+        Route::get('jurnal/{pertemuan}', [\App\Http\Controllers\Guru\JurnalController::class, 'show'])->name('jurnal.show');
 
         // AI Advisor
         Route::get('ai-advisor', [\App\Http\Controllers\AiAdvisorController::class, 'index'])->name('ai.index');
@@ -127,6 +134,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('rapor/{santri}', [\App\Http\Controllers\Kurikulum\RaporController::class, 'show'])->name('rapor.show');
         Route::get('rapor/{santri}/cetak', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetak'])->name('rapor.cetak');
         Route::get('rapor/{santri}/cetak-arab', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetakArab'])->name('rapor.cetak-arab');
+
+        // Leger Nilai
+        // Leger Nilai -- reuse Kurikulum\LegerController, guard akses ada di controller itu sendiri
+        Route::get('leger-nilai', [\App\Http\Controllers\Kurikulum\LegerController::class, 'index'])->name('leger-nilai.index');
+        Route::get('leger-nilai/{kelas}', [\App\Http\Controllers\Kurikulum\LegerController::class, 'show'])->name('leger-nilai.show');
+        Route::get('leger-nilai/{kelas}/cetak', [\App\Http\Controllers\Kurikulum\LegerController::class, 'cetak'])->name('leger-nilai.cetak');
+        Route::get('leger-nilai/{kelas}/export', [\App\Http\Controllers\Kurikulum\LegerController::class, 'export'])->name('leger-nilai.export');
     });
 
     // ==========================================
@@ -199,6 +213,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('tahun-ajaran', \App\Http\Controllers\Admin\TahunAjaranController::class);
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [\App\Http\Controllers\Admin\TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
         Route::resource('tingkatan', \App\Http\Controllers\Admin\TingkatanController::class)->except(['show']);
+        Route::resource('kategori-mata-pelajaran', \App\Http\Controllers\Admin\KategoriMataPelajaranController::class)->except(['show']);
         Route::resource('mata-pelajaran', \App\Http\Controllers\Admin\MataPelajaranController::class);
         Route::get('kkm', [\App\Http\Controllers\Admin\KkmController::class, 'index'])->name('kkm.index');
         Route::post('kkm', [\App\Http\Controllers\Admin\KkmController::class, 'store'])->name('kkm.store');

@@ -1,8 +1,9 @@
 {{-- ============================================================ --}}
 {{-- resources/views/rapor/cetak-arab-pdf.blade.php                --}}
-{{-- Rapor 2 halaman format Arab (KMI) -- render lewat DomPDF.      --}}
-{{-- Struktur & rumus mengikuti PERSIS sheet "RAPORT" pada template --}}
-{{-- asli yang diberikan pengguna (RAPORT_7A_GANJIL_2025_2026.xlsx). --}}
+{{-- Rapor Arab - Format "كشف الدرجة", panjang halaman FLEKSIBEL   --}}
+{{-- mengikuti jumlah mapel yang diampu murid. Header/footer pakai --}}
+{{-- mekanisme native mPDF (<htmlpageheader>/<htmlpagefooter>)     --}}
+{{-- supaya otomatis terulang di berapa pun halaman yang terbentuk. --}}
 {{-- ============================================================ --}}
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
@@ -11,337 +12,548 @@
     <meta charset="UTF-8">
     <style>
         @page {
-            margin: 12mm 14mm;
+            margin-top: 34mm;
+            margin-right: 15mm;
+            margin-bottom: 20mm;
+            margin-left: 15mm;
+            margin-header: 8mm;
+            margin-footer: 8mm;
         }
 
         body {
-            font-family: 'DejaVu Sans', 'Noto Naskh Arabic', sans-serif;
+            font-family: 'Traditional Arabic', 'DejaVu Sans', 'Noto Naskh Arabic', sans-serif;
             direction: rtl;
-            font-size: 11px;
+            font-size: 12.5px;
             color: #111;
+            line-height: 1.6;
         }
 
-        .page-break {
-            page-break-after: always;
-        }
-
-        table {
+        /* ========== HEADER BERULANG (native mPDF) ========== */
+        .header-info {
             width: 100%;
             border-collapse: collapse;
-        }
-
-        th,
-        td {
-            border: 1px solid #333;
-            padding: 3px 5px;
-            text-align: center;
-            vertical-align: middle;
-        }
-
-        .no-border td,
-        .no-border th {
-            border: none;
-        }
-
-        h1 {
-            font-size: 15px;
-            text-align: center;
-            margin: 0 0 2px 0;
-        }
-
-        h2 {
-            font-size: 12px;
-            text-align: center;
-            margin: 0 0 10px 0;
-            font-weight: normal;
+            border-bottom: 1.5px solid #333;
+            padding-bottom: 4px;
         }
 
         .header-info td {
             border: none;
-            padding: 2px 4px;
-            font-size: 11px;
+            padding: 2px 6px;
+            font-size: 12px;
+            vertical-align: top;
+            width: 50%;
         }
 
-        .header-info .label {
+        .header-info .h-label {
             font-weight: bold;
-            width: 90px;
         }
 
-        .kategori-row td {
+        .header-info .h-sep {
+            margin: 0 4px;
+        }
+
+        /* ========== FOOTER BERULANG (native mPDF) ========== */
+        .footer-rapor {
+            width: 100%;
+            border-collapse: collapse;
+            border-top: 1px solid #999;
+            padding-top: 3px;
+            font-size: 10.5px;
+            color: #444;
+        }
+
+        .footer-rapor td {
+            border: none;
+            padding: 0 2px;
+        }
+
+        .footer-rapor .footer-kanan {
+            text-align: right;
+        }
+
+        .footer-rapor .footer-kiri {
+            text-align: left;
+        }
+
+        /* ========== JUDUL ========== */
+        .judul-utama {
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin: 0 0 2px 0;
+        }
+
+        .nama-sekolah {
+            text-align: center;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        /* ========== TABEL NILAI (mengalir otomatis ke berapa pun halaman) ========== */
+        .tabel-nilai {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 6px 0;
+        }
+
+        .tabel-nilai thead {
+            display: table-header-group;
+        }
+
+        .tabel-nilai th {
+            border: 1px solid #333;
+            padding: 5px 6px;
+            text-align: center;
             font-weight: bold;
             background-color: #f0f0f0;
+            font-size: 12px;
         }
 
-        .ttd-table td {
+        .tabel-nilai td {
+            border: 1px solid #333;
+            padding: 4px 6px;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 11.5px;
+        }
+
+        .tabel-nilai .mapel-cell {
+            text-align: right;
+        }
+
+        .tabel-nilai .kategori-row td {
+            font-weight: bold;
+            text-align: right;
+            font-size: 12px;
+            padding: 5px 8px;
+        }
+
+        .tabel-nilai .deskripsi-cell {
+            text-align: right;
+            font-size: 10.5px;
+            line-height: 1.7;
+            padding: 5px 8px;
+        }
+
+        .col-no {
+            width: 5%;
+        }
+
+        .col-mapel {
+            width: 20%;
+        }
+
+        .col-nilai {
+            width: 10%;
+        }
+
+        .col-deskripsi {
+            width: 65%;
+        }
+
+        /* ========== KOTAK SAMPING (شخصيات الطالب / الغياب) ========== */
+        .side-box {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            page-break-inside: avoid;
+        }
+
+        .side-box td {
+            border: 1px solid #333;
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .side-box .title-cell {
+            font-weight: bold;
+            text-align: center;
+            width: 20%;
+            vertical-align: middle;
+            background-color: #f5f5f5;
+        }
+
+        .side-box .label-cell {
+            font-weight: bold;
+            text-align: right;
+            width: 30%;
+        }
+
+        .side-box .sep-cell {
+            width: 3%;
+            text-align: center;
+        }
+
+        .side-box .value-cell {
+            text-align: center;
+            width: 47%;
+        }
+
+        /* ========== RINGKASAN ========== */
+        .ringkasan {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0 14px 0;
+            page-break-inside: avoid;
+        }
+
+        .ringkasan td {
+            border: 1px solid #333;
+            padding: 5px 10px;
+            font-size: 12.5px;
+        }
+
+        .ringkasan .label-r {
+            font-weight: bold;
+            text-align: right;
+            width: 65%;
+        }
+
+        .ringkasan .value-r {
+            text-align: center;
+            width: 35%;
+        }
+
+        /* ========== KESIMPULAN ========== */
+        .kesimpulan-box {
+            text-align: center;
+            margin: 10px 0;
+            padding: 4px 0;
+            page-break-inside: avoid;
+        }
+
+        .kesimpulan-box .kesimpulan-teks {
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .kesimpulan-box .status-box {
+            display: inline-block;
+            border: 1px solid #333;
+            padding: 6px 30px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        /* ========== TANGGAL ========== */
+        .tanggal-block {
+            text-align: right;
+            font-size: 12px;
+            margin: 14px 0 4px 0;
+            page-break-inside: avoid;
+        }
+
+        .tanggal-hijriah {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        /* ========== TANDA TANGAN (4 kolom, tampil 1x di akhir dokumen) ========== */
+        .ttd {
+            margin-top: 18mm;
+            page-break-inside: avoid;
+        }
+
+        .ttd table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .ttd td {
             border: none;
             text-align: center;
-            padding-top: 40px;
-            font-size: 11px;
+            padding-top: 34px;
+            font-size: 11.5px;
+            vertical-align: bottom;
+            width: 25%;
         }
 
         .ttd-line {
             border-top: 1px solid #333;
             display: inline-block;
-            width: 80%;
-            margin-top: 2px;
+            width: 85%;
+            margin-top: 4px;
         }
 
-        .small {
-            font-size: 9px;
-            color: #444;
+        .ttd-name {
+            font-weight: bold;
+            margin-top: 4px;
+            font-size: 12px;
         }
     </style>
 </head>
 
 <body>
 
-    {{-- ===================== HALAMAN 1 ===================== --}}
-    <h1>كشف الدرجة</h1>
-    <h2>كلية المعلمين الإسلامية بمعهد الإسلام للتربية الإسلامية الحديثة</h2>
+    @php
+    // Konversi angka Latin -> angka Arab (٠١٢٣٤٥٦٧٨٩).
+    function toArabicDigits($val) {
+    if ($val === null || $val === '-') return $val ?? '-';
+    return strtr((string) $val, ['0'=>'٠','1'=>'١','2'=>'٢','3'=>'٣','4'=>'٤','5'=>'٥','6'=>'٦','7'=>'٧','8'=>'٨','9'=>'٩']);
+    }
 
-    <table class="header-info no-border">
-        <tr>
-            <td class="label">اسم الطالب</td>
-            <td>{{ $data['santri']['nama_arab'] ?? $data['santri']['nama_latin'] }}</td>
-            <td class="label">الفصل</td>
-            <td>{{ $data['kelas']->nama }}</td>
-        </tr>
-        <tr>
-            <td class="label">رقم قيد الطالب</td>
-            <td>{{ $data['santri']['nis'] }}</td>
-            <td class="label">الفصل الدراسي</td>
-            <td>{{ $data['ta']->semester === 'ganjil' ? 'آخر الدراسي الأول' : 'آخر الدراسي الثاني' }}</td>
-        </tr>
-        <tr>
-            <td class="label">العام الدراسي</td>
-            <td>{{ $data['ta']->nama }}</td>
-            <td class="label">القسم</td>
-            <td>الشرعي</td>
-        </tr>
-    </table>
+    // Format tanggal Masehi manual ke Arab (nama bulan Arab + angka Arab).
+    // Tidak mengandalkan translatedFormat()/locale aplikasi karena
+    // terbukti tidak konsisten (kadang masih keluar nama bulan Inggris).
+    function formatMasehiArab($tanggal) {
+    if (!$tanggal) return '-';
+    $bulan = [
+    1=>'يناير', 2=>'فبراير', 3=>'مارس', 4=>'أبريل', 5=>'مايو', 6=>'يونيو',
+    7=>'يوليو', 8=>'أغسطس', 9=>'سبتمبر', 10=>'أكتوبر', 11=>'نوفمبر', 12=>'ديسمبر',
+    ];
+    return toArabicDigits($tanggal->day) . ' ' . ($bulan[$tanggal->month] ?? '') . ' ' . toArabicDigits($tanggal->year);
+    }
 
-    <table>
-        <thead>
+    // Konversi Masehi -> Hijriah murni PHP (algoritma tabular/Kuwaiti),
+    // TIDAK bergantung pada ekstensi "calendar" PHP (sering tidak aktif
+    // di instalasi Windows). Dipakai sebagai fallback otomatis kalau
+    // $data['tanggal_hijriah'] belum diisi manual di database.
+    function masehiKeHijriahArab($tanggal) {
+    if (!$tanggal) return '-';
+
+    $bulanHijriah = [
+    1=>'محرم', 2=>'صفر', 3=>'ربيع الأول', 4=>'ربيع الآخر', 5=>'جمادى الأولى', 6=>'جمادى الآخرة',
+    7=>'رجب', 8=>'شعبان', 9=>'رمضان', 10=>'شوال', 11=>'ذو القعدة', 12=>'ذو الحجة',
+    ];
+
+    $day = (int) $tanggal->day;
+    $month = (int) $tanggal->month;
+    $year = (int) $tanggal->year;
+
+    $jd = intval((1461 * ($year + 4800 + intval(($month - 14) / 12))) / 4)
+    + intval((367 * ($month - 2 - 12 * intval(($month - 14) / 12))) / 12)
+    - intval((3 * intval(($year + 4900 + intval(($month - 14) / 12)) / 100)) / 4)
+    + $day - 32075;
+
+    $l = $jd - 1948440 + 10632;
+    $n = intval(($l - 1) / 10631);
+    $l = $l - 10631 * $n + 354;
+    $j = intval((10985 - $l) / 5316) * intval((50 * $l) / 17719)
+    + intval($l / 5670) * intval((43 * $l) / 15238);
+    $l = $l - intval((30 - $j) / 15) * intval((17719 * $j) / 50)
+    - intval($j / 16) * intval((15238 * $j) / 43) + 29;
+    $hm = intval((24 * $l) / 709);
+    $hd = $l - intval((709 * $hm) / 24);
+    $hy = 30 * $n + $j - 30;
+
+    return toArabicDigits($hd) . ' ' . ($bulanHijriah[$hm] ?? '') . ' ' . toArabicDigits($hy) . ' هـ';
+    }
+
+    $tanggalMasehiArab = formatMasehiArab($data['tanggal_masehi'] ?? null);
+    $tanggalHijriahArab = !empty($data['tanggal_hijriah'])
+    ? $data['tanggal_hijriah']
+    : masehiKeHijriahArab($data['tanggal_masehi'] ?? null);
+
+    $kategoriMap = [
+    'wajib' => 'المواد الإجبارية',
+    'Mata Pelajaran Wajib' => 'المواد الإجبارية',
+    'pilihan' => 'المواد الاختيارية',
+    'Mata Pelajaran Pilihan' => 'المواد الاختيارية',
+    'mulok' => 'المحتوى المحلي',
+    'muatan_lokal' => 'المحتوى المحلي',
+    'Muatan Lokal' => 'المحتوى المحلي',
+    ];
+
+    $semesterTeks = $data['ta']->semester === 'ganjil' ? 'الأول' : 'الثاني';
+    @endphp
+
+    {{-- ============================================================ --}}
+    {{-- DEFINISI HEADER BERULANG (mekanisme native mPDF)             --}}
+    {{-- ============================================================ --}}
+    <htmlpageheader name="header-rapor">
+        <table class="header-info">
             <tr>
-                <th rowspan="2" style="width:4%;">الرقم</th>
-                <th rowspan="2" style="width:14%;">أقسام المواد الدراسية</th>
-                <th rowspan="2">المواد الدراسية</th>
-                <th style="width:8%;">الحد الأدنى</th>
-                <th colspan="2">الفرجات المكتسبة</th>
-                <th rowspan="2" style="width:14%;">التقدير</th>
-                <th rowspan="2" style="width:8%;">المعدل الفصل</th>
+                <td>
+                    <span class="h-label">إسم الطالب</span><span class="h-sep">:</span>
+                    {{ $data['santri']['nama_arab'] ?? $data['santri']['nama_latin'] }}
+                </td>
+                <td>
+                    <span class="h-label">الفصل</span><span class="h-sep">:</span>
+                    {{ $data['kelas']->nama }}
+                </td>
             </tr>
             <tr>
-                <th style="width:8%;">معايير إكتمال</th>
-                <th style="width:8%;">رقما</th>
-                <th style="width:14%;">كتابة</th>
+                <td>
+                    <span class="h-label">رقم قيد الطالب</span><span class="h-sep">:</span>
+                    {{ toArabicDigits($data['santri']['nis']) }}
+                </td>
+                <td>
+                    <span class="h-label">الفصل الدراسي</span><span class="h-sep">:</span>
+                    {{ $semesterTeks }}
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <span class="h-label">العام الدراسي</span><span class="h-sep">:</span>
+                    {{ toArabicDigits($data['ta']->nama) }}
+                </td>
+                <td>
+                    <span class="h-label">القسم</span><span class="h-sep">:</span>
+                    الشرعي
+                </td>
+            </tr>
+        </table>
+    </htmlpageheader>
+
+    {{-- ============================================================ --}}
+    {{-- DEFINISI FOOTER BERULANG (mekanisme native mPDF)             --}}
+    {{-- {PAGENO} dan {nbpg} otomatis diisi mPDF (halaman saat ini/total) --}}
+    {{-- ============================================================ --}}
+    <htmlpagefooter name="footer-rapor">
+        <table class="footer-rapor">
+            <tr>
+                <td class="footer-kanan">
+                    {{ $data['kelas']->nama }} | {{ $data['santri']['nama_arab'] ?? $data['santri']['nama_latin'] }} | {{ toArabicDigits($data['santri']['nis']) }}
+                </td>
+                <td class="footer-kiri">الصفحة {PAGENO} من {nbpg}</td>
+            </tr>
+        </table>
+    </htmlpagefooter>
+
+    <sethtmlpageheader name="header-rapor" value="on" show-this-page="1" />
+    <sethtmlpagefooter name="footer-rapor" value="on" />
+
+    {{-- ============================================================ --}}
+    {{-- JUDUL (sekali saja, di awal alur dokumen)                    --}}
+    {{-- ============================================================ --}}
+    <div class="judul-utama">كشف الدرجة</div>
+    <div class="nama-sekolah">كلية المعلمين الإسلامية بـ{{ $data['sekolah_nama'] ?? 'معهد الإسلام الإسلامي للتربية الإسلامية الحديثة' }}</div>
+
+    {{-- ============================================================ --}}
+    {{-- TABEL NILAI (No, Mapel, Nilai Akhir, Deskripsi) - kategori   --}}
+    {{-- jadi 1 baris penuh, mengalir otomatis sesuai jumlah mapel    --}}
+    {{-- ============================================================ --}}
+    <table class="tabel-nilai">
+        <thead>
+            <tr>
+                <th class="col-no">الرقم</th>
+                <th class="col-mapel">المواد الدراسية</th>
+                <th class="col-nilai">الدرجة النهائية</th>
+                <th class="col-deskripsi">وصفيات النتائج / وصف الإنجاز</th>
             </tr>
         </thead>
         <tbody>
             @php $no = 1; @endphp
             @foreach($data['mapel_per_kategori'] as $kategori => $daftarMapel)
-            @foreach($daftarMapel as $i => $m)
+            <tr class="kategori-row">
+                <td colspan="4">{{ $kategoriMap[$kategori] ?? $kategori }}</td>
+            </tr>
+            @foreach($daftarMapel as $m)
             <tr>
-                @if($i === 0)
-                <td rowspan="{{ $daftarMapel->count() }}">{{ $no++ }}</td>
-                <td rowspan="{{ $daftarMapel->count() }}">{{ $kategori }}</td>
-                @endif
-                <td style="text-align:right;">{{ $m['nama'] }}</td>
-                <td>{{ $m['kkm'] ?? '-' }}</td>
-                <td>{{ $m['nilai_angka'] !== null ? number_format($m['nilai_angka'], 0) : '-' }}</td>
-                <td>{{ $m['nilai_kata'] }}</td>
-                <td>{{ $m['predikat'] }}</td>
-                <td>{{ $m['nilai_angka'] !== null ? number_format($m['nilai_angka'], 0) : '-' }}</td>
+                <td class="col-no">{{ toArabicDigits($no++) }}</td>
+                <td class="mapel-cell">{{ $m['nama'] }}</td>
+                <td>{{ $m['nilai_angka'] !== null ? toArabicDigits(number_format($m['nilai_angka'], 0)) : '-' }}</td>
+                <td class="deskripsi-cell">{{ $m['deskripsi'] }}</td>
             </tr>
             @endforeach
             @endforeach
         </tbody>
     </table>
 
-    <table class="no-border" style="margin-top:6px;">
+    {{-- شخصيات الطالب --}}
+    <table class="side-box">
         <tr>
-            <td style="text-align:right; width:70%;">مجموع الدرجات</td>
-            <td style="text-align:left;">{{ number_format($data['jumlah'], 0) }}</td>
+            <td class="title-cell" rowspan="4">شخصيات الطالب</td>
+            <td class="label-cell">الأدب</td>
+            <td class="sep-cell">:</td>
+            <td class="value-cell">{{ $data['kepribadian']['akhlaq'] }}</td>
         </tr>
         <tr>
-            <td style="text-align:right;">المعدل</td>
-            <td style="text-align:left;">{{ $data['rata_rata'] }}</td>
+            <td class="label-cell">المواظبة</td>
+            <td class="sep-cell">:</td>
+            <td class="value-cell">{{ $data['kepribadian']['kerajinan'] }}</td>
         </tr>
         <tr>
-            <td style="text-align:right;">رتبته في مستواه</td>
-            <td style="text-align:left;">{{ $data['peringkat_tampil'] ?? '-' }}</td>
+            <td class="label-cell">النظافة</td>
+            <td class="sep-cell">:</td>
+            <td class="value-cell">{{ $data['kepribadian']['kebersihan'] }}</td>
         </tr>
         <tr>
-            <td style="text-align:right;">عدد الطلبة في الفصل</td>
-            <td style="text-align:left;">{{ $data['jumlah_santri_kelas'] }}</td>
-        </tr>
-    </table>
-
-    <table class="no-border" style="margin-top:14px;">
-        <tr>
-            <td style="text-align:center; width:50%;">
-                {{ $data['tanggal_hijriah'] ?? '-' }}
-            </td>
-            <td style="text-align:center;">
-                {{ optional($data['tanggal_masehi'])->translatedFormat('d F Y') }}
-            </td>
-        </tr>
-        <tr>
-            <td colspan="2" style="text-align:center; padding-top:2px;">تحريرا بثيرون</td>
+            <td class="label-cell">الإنضباط</td>
+            <td class="sep-cell">:</td>
+            <td class="value-cell">{{ $data['kepribadian']['kedisiplinan'] }}</td>
         </tr>
     </table>
 
-    <table class="ttd-table" style="margin-top:10px;">
+    {{-- الغياب --}}
+    <table class="side-box">
         <tr>
-            <td style="width:33%;">
-                ولي الطالب
-                <div class="ttd-line"></div>
-            </td>
-            <td style="width:34%;">
-                ولي الفصل
-                <div class="ttd-line"></div>
-                <div>{{ $data['wali_kelas'] ?? '-' }}</div>
-            </td>
-            <td style="width:33%;">
-                رئيسة المدرسة
-                <div class="ttd-line"></div>
-                <div>{{ $data['kepala_sekolah'] ?? '-' }}</div>
-            </td>
+            <td class="title-cell" rowspan="3">الغياب</td>
+            <td class="label-cell">لمرض</td>
+            <td class="sep-cell">:</td>
+            <td class="value-cell">{{ toArabicDigits($data['ketidakhadiran']['sakit']) }} حصة</td>
         </tr>
-    </table>
-    <table class="no-border">
         <tr>
-            <td style="text-align:center; padding-top:20px;">
-                معرفة من : مدير المعهد
-                <div class="ttd-line" style="margin: 4px auto;"></div>
-                <div>{{ $data['mudir'] ?? '-' }}</div>
-            </td>
+            <td class="label-cell">بإذن</td>
+            <td class="sep-cell">:</td>
+            <td class="value-cell">{{ toArabicDigits($data['ketidakhadiran']['izin']) }} حصة</td>
+        </tr>
+        <tr>
+            <td class="label-cell">بلا إذن</td>
+            <td class="sep-cell">:</td>
+            <td class="value-cell">{{ toArabicDigits($data['ketidakhadiran']['alpa']) }} حصة</td>
         </tr>
     </table>
 
-    <div class="page-break"></div>
+    {{-- KESIMPULAN --}}
+    <div class="kesimpulan-box">
+        <div class="kesimpulan-teks">اعتمادا على النتائج المذكورة نقرر بأن الطالب المذكورة</div>
+        <div class="status-box">" {{ $data['kesimpulan'] }} "</div>
+    </div>
 
-    {{-- ===================== HALAMAN 2 ===================== --}}
-    <h1 class="small" style="text-align:left;">{{ $data['santri']['nama_latin'] }} — {{ $data['kelas']->nama }}</h1>
-
-    <table class="header-info no-border">
+    {{-- RINGKASAN --}}
+    <table class="ringkasan">
         <tr>
-            <td class="label">اسم الطالب</td>
-            <td>{{ $data['santri']['nama_arab'] ?? $data['santri']['nama_latin'] }}</td>
+            <td class="label-r">مجموع الدرجات</td>
+            <td class="value-r">{{ toArabicDigits(number_format($data['jumlah'], 0)) }}</td>
         </tr>
         <tr>
-            <td class="label">الفصل</td>
-            <td>{{ $data['kelas']->nama }}</td>
-            <td class="label">الفصل الدراسي</td>
-            <td>{{ $data['ta']->semester === 'ganjil' ? 'آخر الدراسي الأول' : 'آخر الدراسي الثاني' }}</td>
+            <td class="label-r">المعدل الدرجات</td>
+            <td class="value-r">{{ toArabicDigits($data['rata_rata']) }}</td>
         </tr>
         <tr>
-            <td class="label">العام الدراسي</td>
-            <td>{{ $data['ta']->nama }}</td>
-            <td class="label">القسم</td>
-            <td>الشرعي</td>
+            <td class="label-r">رتبته فى مستواه</td>
+            <td class="value-r">{{ $data['peringkat_tampil'] !== null ? toArabicDigits($data['peringkat_tampil']) : '-' }}</td>
+        </tr>
+        <tr>
+            <td class="label-r">عدد الطلبة فى الفصل</td>
+            <td class="value-r">{{ toArabicDigits($data['jumlah_santri_kelas']) }}</td>
         </tr>
     </table>
 
-    <table>
-        <thead>
+    {{-- TANGGAL --}}
+    <div class="tanggal-block">
+        تحريرا بـ{{ $data['tempat'] ?? '-' }}،<br>
+        <span class="tanggal-hijriah">{{ $tanggalHijriahArab }}</span><br>
+        <span>{{ $tanggalMasehiArab }}</span>
+    </div>
+
+    {{-- TANDA TANGAN (4 kolom, urut kanan ke kiri: mudir, kepala sekolah, wali kelas, wali santri) --}}
+    <div class="ttd">
+        <table>
             <tr>
-                <th style="width:4%;">الرقم</th>
-                <th style="width:14%;">أقسام المواد الدراسية</th>
-                <th style="width:16%;">المواد الدراسية</th>
-                <th>وصفيات النتائج</th>
+                <td>
+                    بمعرفة من: مدير المعهد
+                    <div class="ttd-line"></div>
+                    <div class="ttd-name">{{ $data['mudir'] ?? '-' }}</div>
+                </td>
+                <td>
+                    رئيس المدرسة
+                    <div class="ttd-line"></div>
+                    <div class="ttd-name">{{ $data['kepala_sekolah'] ?? '-' }}</div>
+                </td>
+                <td>
+                    ولي الفصل
+                    <div class="ttd-line"></div>
+                    <div class="ttd-name">{{ $data['wali_kelas'] ?? '-' }}</div>
+                </td>
+                <td>
+                    ولي الطالب
+                    <div class="ttd-line"></div>
+                </td>
             </tr>
-        </thead>
-        <tbody>
-            @php $no = 1; @endphp
-            @foreach($data['mapel_per_kategori'] as $kategori => $daftarMapel)
-            @foreach($daftarMapel as $i => $m)
-            <tr>
-                @if($i === 0)
-                <td rowspan="{{ $daftarMapel->count() }}">{{ $no++ }}</td>
-                <td rowspan="{{ $daftarMapel->count() }}">{{ $kategori }}</td>
-                @endif
-                <td style="text-align:right;">{{ $m['nama'] }}</td>
-                <td style="text-align:right;">{{ $m['deskripsi'] }}</td>
-            </tr>
-            @endforeach
-            @endforeach
-        </tbody>
-    </table>
-
-    <table style="margin-top:10px;">
-        <tr>
-            <th rowspan="4" style="width:16%;">شخصيات الطالب</th>
-            <th style="width:14%;">الأدب</th>
-            <td>{{ $data['kepribadian']['akhlaq'] }}</td>
-        </tr>
-        <tr>
-            <th>المواظبة</th>
-            <td>{{ $data['kepribadian']['kerajinan'] }}</td>
-        </tr>
-        <tr>
-            <th>النظافة</th>
-            <td>{{ $data['kepribadian']['kebersihan'] }}</td>
-        </tr>
-        <tr>
-            <th>الإنضباط</th>
-            <td>{{ $data['kepribadian']['kedisiplinan'] }}</td>
-        </tr>
-    </table>
-
-    <table style="margin-top:6px;">
-        <tr>
-            <th rowspan="3" style="width:16%;">الغياب</th>
-            <th style="width:14%;">لمرض</th>
-            <td>{{ $data['ketidakhadiran']['sakit'] }} حصة</td>
-        </tr>
-        <tr>
-            <th>بإذن</th>
-            <td>{{ $data['ketidakhadiran']['izin'] }} حصة</td>
-        </tr>
-        <tr>
-            <th>بلا إذن</th>
-            <td>{{ $data['ketidakhadiran']['alpa'] }} حصة</td>
-        </tr>
-    </table>
-
-    <table class="no-border" style="margin-top:12px;">
-        <tr>
-            <td style="text-align:center;">
-                اعتمادا على النتائج المذكورة نقرر بأن الطالب المذكورة
-                <div style="font-size:16px; font-weight:bold; margin-top:4px;">" {{ $data['kesimpulan'] }} "</div>
-            </td>
-        </tr>
-    </table>
-
-    <table class="no-border" style="margin-top:8px;">
-        <tr>
-            <td style="text-align:center; width:50%;">{{ $data['tanggal_hijriah'] ?? '-' }}</td>
-            <td style="text-align:center;">{{ optional($data['tanggal_masehi'])->translatedFormat('d F Y') }}</td>
-        </tr>
-        <tr>
-            <td colspan="2" style="text-align:center; padding-top:2px;">تحريرا بثيرون</td>
-        </tr>
-    </table>
-
-    <table class="ttd-table" style="margin-top:10px;">
-        <tr>
-            <td style="width:33%;">
-                ولي الطالب
-                <div class="ttd-line"></div>
-            </td>
-            <td style="width:34%;">
-                ولي الفصل
-                <div class="ttd-line"></div>
-                <div>{{ $data['wali_kelas'] ?? '-' }}</div>
-            </td>
-            <td style="width:33%;">
-                رئيسة المدرسة
-                <div class="ttd-line"></div>
-                <div>{{ $data['kepala_sekolah'] ?? '-' }}</div>
-            </td>
-        </tr>
-    </table>
+        </table>
+    </div>
 
 </body>
 

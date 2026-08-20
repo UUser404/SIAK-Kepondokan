@@ -11,7 +11,12 @@ class MataPelajaran extends Model
 
     protected $table = 'mata_pelajaran';
 
-    protected $fillable = ['kode', 'nama', 'kategori', 'deskripsi', 'kkm', 'is_active'];
+    // 'kkm' SENGAJA tidak ada di sini lagi -- KKM sekarang diatur per tingkatan
+    // lewat tabel kkm_tingkatan (lihat kkmUntukTingkatan() di bawah), form
+    // create/edit mapel tidak lagi mengirim field ini. Kolom `kkm` sendiri
+    // TETAP ada di database & TETAP di $casts sebagai fallback -- jangan hapus
+    // keduanya, lihat kkmUntukTingkatan().
+    protected $fillable = ['kode', 'nama', 'kategori', 'deskripsi', 'is_active'];
 
     protected function casts(): array
     {

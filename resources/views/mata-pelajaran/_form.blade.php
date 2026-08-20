@@ -17,33 +17,18 @@
         </div>
         @endif
 
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
-                    Kode <span class="text-red-500">*</span>
-                </label>
-                <input type="text" name="kode"
-                    value="{{ old('kode', $mataPelajaran?->kode) }}"
-                    placeholder="e.g. MAT" required
-                    class="w-full px-3.5 py-2.5 text-sm rounded-xl border uppercase
-                              border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
-                              text-siakad-dark dark:text-white placeholder-gray-400
-                              focus:ring-2 outline-none transition">
-                @error('kode')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
-                    KKM
-                </label>
-                <input type="number" name="kkm" min="0" max="100"
-                    value="{{ old('kkm', $mataPelajaran?->kkm) }}"
-                    placeholder="e.g. 70"
-                    class="w-full px-3.5 py-2.5 text-sm rounded-xl border
-                              border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
-                              text-siakad-dark dark:text-white placeholder-gray-400
-                              focus:ring-2 outline-none transition">
-                @error('kkm')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
-            </div>
+        <div>
+            <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
+                Kode <span class="text-red-500">*</span>
+            </label>
+            <input type="text" name="kode"
+                value="{{ old('kode', $mataPelajaran?->kode) }}"
+                placeholder="e.g. MAT" required
+                class="w-full px-3.5 py-2.5 text-sm rounded-xl border uppercase
+                          border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
+                          text-siakad-dark dark:text-white placeholder-gray-400
+                          focus:ring-2 outline-none transition">
+            @error('kode')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
         </div>
 
         <div>
@@ -69,36 +54,18 @@
                            border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
                            text-siakad-dark dark:text-white focus:ring-2 outline-none transition">
                 <option value="">-- Belum dikelompokkan --</option>
-                @foreach(['القرآن و علومه', 'العقيدة و الأخلاق', 'الشّريعة', 'اللغة العربية'] as $kat)
-                <option value="{{ $kat }}"
-                    {{ old('kategori', $mataPelajaran?->kategori) === $kat ? 'selected' : '' }}>
-                    {{ $kat }}
+                @foreach($kategoriMataPelajaran as $kat)
+                <option value="{{ $kat->nama }}"
+                    {{ old('kategori', $mataPelajaran?->kategori) === $kat->nama ? 'selected' : '' }}>
+                    {{ $kat->nama }}
                 </option>
                 @endforeach
             </select>
             <p class="text-xs text-siakad-secondary dark:text-gray-400 mt-1">
                 Mapel dikelompokkan di rapor berdasarkan kategori ini — mapel tanpa kategori tidak akan tampil di rapor.
+                <a href="{{ route('admin.kategori-mata-pelajaran.index') }}" class="underline hover:text-siakad-primary">Kelola daftar kategori</a>.
             </p>
             @error('kategori')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
-        </div>
-
-        <div>
-            <label class="block text-sm font-medium text-siakad-dark dark:text-gray-200 mb-1.5">
-                Tingkat <span class="text-red-500">*</span>
-            </label>
-            <select name="tingkat" required
-                class="w-full px-3.5 py-2.5 text-sm rounded-xl border
-                           border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
-                           text-siakad-dark dark:text-white focus:ring-2 outline-none transition">
-                <option value="">-- Pilih Tingkat --</option>
-                @foreach(['7','8','9','10','11','12'] as $t)
-                <option value="{{ $t }}"
-                    {{ old('tingkat', $mataPelajaran?->tingkat) == $t ? 'selected' : '' }}>
-                    Kelas {{ $t }}
-                </option>
-                @endforeach
-            </select>
-            @error('tingkat')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
         </div>
 
         <div>

@@ -46,7 +46,20 @@
 
         {{-- Header Card --}}
         <div class="card-saas overflow-hidden">
-            <div class="p-6 bg-gradient-to-r from-siakad-primary to-siakad-dark">
+            {{-- FIX: sebelumnya "bg-gradient-to-r from-siakad-primary to-siakad-dark"
+                 -- itu class Tailwind yang MENGASUMSIKAN siakad-primary/siakad-dark
+                 terdaftar sebagai warna resmi di tailwind.config.js. Padahal di
+                 SELURUH project ini, 2 warna itu cuma ada sebagai CSS custom
+                 property (var(--siakad-primary) di :root), diterapkan lewat
+                 inline style, BUKAN lewat nama class Tailwind. Akibatnya Tailwind
+                 tidak generate CSS apapun untuk from-siakad-primary/to-siakad-dark
+                 (class tidak dikenali, diam-diam diabaikan) -- div ini jatuh balik
+                 ke background putih default .card-saas, sementara teks di
+                 dalamnya tetap text-white (itu class Tailwind asli, selalu ada) --
+                 hasilnya teks putih di atas card putih, tidak kebaca sama sekali.
+                 Gradient sekarang dibuat manual pakai CSS var() lewat inline style,
+                 konsisten dengan cara SEMUA warna brand lain diterapkan di project ini. --}}
+            <div class="p-6" style="background: linear-gradient(to right, var(--siakad-primary), var(--siakad-dark));">
                 <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
                     <div class="w-20 h-20 rounded-2xl overflow-hidden bg-white/20 flex-shrink-0
                             flex items-center justify-center">
@@ -137,7 +150,7 @@
 
         {{-- Akun Portal Santri --}}
         @php
-            $akunUser = $santri->user_id ? \App\Models\User::find($santri->user_id) : null;
+        $akunUser = $santri->user_id ? \App\Models\User::find($santri->user_id) : null;
         @endphp
         <div class="card-saas p-5">
             <div class="flex items-center justify-between mb-4">

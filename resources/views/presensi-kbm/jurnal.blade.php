@@ -17,7 +17,7 @@
             <div>
                 <label class="block text-xs text-siakad-secondary mb-1">Bulan</label>
                 <select name="bulan" onchange="this.form.submit()"
-                    class="px-3 py-2.5 text-sm rounded-xl border border-gray-200
+                    class="w-36 px-3 py-2.5 text-sm rounded-xl border border-gray-200
                            bg-gray-50 text-siakad-dark
                            focus:ring-2 outline-none transition">
                     @foreach(range(1,12) as $b)
@@ -30,7 +30,7 @@
             <div>
                 <label class="block text-xs text-siakad-secondary mb-1">Tahun</label>
                 <select name="tahun" onchange="this.form.submit()"
-                    class="px-3 py-2.5 text-sm rounded-xl border border-gray-200
+                    class="w-24 px-3 py-2.5 text-sm rounded-xl border border-gray-200
                            bg-gray-50 text-siakad-dark
                            focus:ring-2 outline-none transition">
                     @foreach(range(now()->year, now()->year - 2) as $y)
@@ -49,7 +49,7 @@
         ['Santri Alpa', $totalSantriAlpa, 'red'],
         ] as [$label, $value, $color])
         <div class="card-saas p-5 text-center">
-            <p class="text-2xl font-bold text-{{ $color }}-600 $color }}-400"
+            <p class="text-2xl font-bold text-{{ $color }}-600 dark:text-{{ $color }}-400"
                 @if($color==='siakad-primary' ) style="color: var(--siakad-primary);" @endif>
                 {{ $value }}
             </p>
@@ -134,13 +134,13 @@
                         </td>
                         @foreach(['hadir'=>'green','sakit'=>'blue','izin'=>'yellow','alpa'=>'red'] as $s => $c)
                         <td class="px-5 py-3 text-center font-semibold
-                               text-{{ $c }}-600 $c }}-400">
+                               text-{{ $c }}-600 dark:text-{{ $c }}-400">
                             {{ $p->presensiKbm->where('status', $s)->count() }}
                         </td>
                         @endforeach
                         <td class="px-5 py-3">
                             <div class="flex items-center gap-2 justify-end">
-                                <a href="{{ route('guru.presensi.show', $p) }}"
+                                <a href="{{ route('guru.jurnal.show', $p) }}"
                                     class="px-2.5 py-1 text-xs font-medium rounded-lg transition-colors
                                            border border-gray-200 text-siakad-dark hover:bg-gray-100">
                                     Lihat
@@ -164,7 +164,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="px-5 py-12 text-center text-sm
+                        <td colspan="8" class="px-5 py-12 text-center text-sm
                                            text-siakad-secondary">
                             Belum ada pertemuan bulan ini
                         </td>

@@ -16,7 +16,7 @@
         <h2 class="text-xl font-semibold text-siakad-dark dark:text-white">Tambah Mata Pelajaran</h2>
     </div>
 
-    <form method="POST" action="{{ route('admin.mata-pelajaran.store') }}" class="max-w-xl">
+    <form method="POST" action="{{ route('admin.mata-pelajaran.store') }}" class="w-full">
         @csrf
         @include('mata-pelajaran._form', ['mataPelajaran' => null, 'submitLabel' => 'Simpan'])
     </form>
