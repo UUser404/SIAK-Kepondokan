@@ -128,30 +128,8 @@ $active = fn(string $prefix) => str_starts_with($current, $prefix) ? 'active' : 
 </a>
 @endforeach
 
-
 @if(Auth::user()->isWaliKelas())
 @php
-// Wali kelas -- SAAT INI diasumsikan 1 guru cuma jadi wali 1 kelas,
-// jadi link Predikat Sikap & Nilai Ekskul di bawah LANGSUNG ke kelas
-// itu (skip halaman pilih kelas), diambil dari kelas pertama.
-//
-// KALAU NANTI wali kelas bisa pegang >1 kelas: Predikat Sikap & Nilai
-// Ekskul BELUM punya halaman pemilih kelas sendiri (beda dari Rapor &
-// Leger Nilai di bawah yang sudah punya route .index() sendiri buat
-// pilih kelas, jadi 2 link itu SUDAH aman untuk banyak kelas tanpa
-// perlu diubah). Kalau $kelasWaliList->count() > 1 mulai kejadian:
-// 1. Bikin dulu halaman pemilih kelas untuk predikat-sikap & nilai-
-// ekskul (niru pola rapor/index.blade.php atau leger-nilai/index.blade.php)
-// 2. Baru ubah href di bawah dari "kelas pertama langsung" jadi ke
-// halaman pemilih itu kalau count() > 1
-// JANGAN cuma diamkan "kelas pertama" sebagai solusi permanen begitu
-// ada wali kelas yang benar-benar pegang >1 kelas -- guru itu nanti
-// tidak akan bisa akses Predikat Sikap/Nilai Ekskul kelas ke-2/3-nya
-// sama sekali lewat sidebar.
-//
-// Link "Dashboard Wali Kelas" sendiri cuma muncul kalau count() > 1
-// (lihat @if di bawah) -- kalau cuma 1 kelas, dashboard jadi klik
-// ekstra yang mubazir karena 4 link lain sudah langsung ke kelas itu.
 $kelasWaliList = Auth::user()->waliKelasKelas()->get();
 $kelasWaliUtama = $kelasWaliList->first();
 @endphp
@@ -159,17 +137,13 @@ $kelasWaliUtama = $kelasWaliList->first();
     <p class="px-3 text-[10px] font-semibold uppercase tracking-widest sidebar-section-title"
         style="color: var(--text-secondary); opacity: 0.6;">Wali Kelas</p>
 </div>
-{{-- Dashboard Wali Kelas cuma berguna kalau wali kelas pegang >1 kelas
-     (jadi butuh overview/pilih dulu). Kalau cuma 1 kelas, 4 link di bawah
-     sudah langsung ke kelas itu -- dashboard jadi klik ekstra yang
-     mubazir, jadi disembunyikan. --}}
+
 @if($kelasWaliList->count() > 1)
 <a href="{{ route('wali-kelas.dashboard') }}"
     class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active('wali-kelas.dashboard') }}"
     style="color: var(--text-secondary);">
     <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
     <span class="sidebar-text">Dashboard Wali Kelas</span>
 </a>
@@ -180,8 +154,7 @@ $kelasWaliUtama = $kelasWaliList->first();
     class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active('wali-kelas.predikat-sikap') }}"
     style="color: var(--text-secondary);">
     <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
     <span class="sidebar-text">Predikat Sikap</span>
 </a>
@@ -189,22 +162,17 @@ $kelasWaliUtama = $kelasWaliList->first();
     class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active('wali-kelas.nilai-ekstrakurikuler') }}"
     style="color: var(--text-secondary);">
     <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
-            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
     </svg>
     <span class="sidebar-text">Nilai Ekskul</span>
 </a>
 @endif
 
-{{-- Rapor & Leger Nilai SUDAH punya halaman pemilih kelas sendiri
-     (route .index()), jadi aman langsung link ke situ -- tidak perlu
-     nunggu/butuh $kelasWaliUtama, sudah siap untuk >1 kelas dari sononya. --}}
 <a href="{{ route('wali-kelas.rapor.index') }}"
     class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active('wali-kelas.rapor') }}"
     style="color: var(--text-secondary);">
     <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
-            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
     </svg>
     <span class="sidebar-text">Rapor</span>
 </a>
@@ -212,14 +180,12 @@ $kelasWaliUtama = $kelasWaliList->first();
     class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active('wali-kelas.leger-nilai') }}"
     style="color: var(--text-secondary);">
     <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
-            d="M9 17v-6h6v6M9 3v4h6V3m-9 4h12a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 17v-6h6v6M9 3v4h6V3m-9 4h12a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2z" />
     </svg>
     <span class="sidebar-text">Leger Nilai</span>
 </a>
 @endif
 
-{{-- AI Tools : Sengaja disimpan di paling bawah dari if guru/wali kelas --}}
 <div class="pt-4 pb-1">
     <p class="px-3 text-[10px] font-semibold uppercase tracking-widest sidebar-section-title"
         style="color: var(--text-secondary); opacity: 0.6;">AI Tools</p>
@@ -232,67 +198,9 @@ $kelasWaliUtama = $kelasWaliList->first();
     </svg>
     <span class="sidebar-text">AI Advisor</span>
 </a>
-
-@if(Auth::user()->isWaliKelas())
-<div class="pt-4 pb-1">
-    <p class="px-3 text-[10px] font-semibold uppercase tracking-widest sidebar-section-title"
-        style="color: var(--text-secondary); opacity: 0.6;">Wali Kelas</p>
-</div>
-<a href="{{ route('wali-kelas.dashboard') }}"
-    class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active('wali-kelas') }}"
-    style="color: var(--text-secondary);">
-    <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-    <span class="sidebar-text">Dashboard Wali Kelas</span>
-</a>
 @endif
+{{-- Akhir dari blok GURU --}}
 
-{{-- ==================== SIMAQ (TAHFIZH) ==================== --}}
-@if(Auth::user()->hasRole(['guru_tahsin_tahfizh', 'admin', 'super_admin']) || $role === 'guru_tahsin_tahfizh')
-
-<div class="pt-6 pb-2 px-3">
-    <!-- Kotak Header Spesial SIMAQ -->
-    <div class="bg-gradient-to-r from-green-50 to-transparent p-2.5 rounded-r-xl border-l-4 border-orange-500 relative overflow-hidden shadow-sm">
-        
-        <!-- Ikon Watermark Transparan di Kanan (Estetika ala Login SIMAQ) -->
-        <svg class="absolute right-0 top-0 w-10 h-10 text-green-200 transform translate-x-3 -translate-y-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-        </svg>
-        
-        <div class="relative z-10">
-            <!-- Teks SIMAQ Utama -->
-            <p class="text-[12px] font-extrabold uppercase tracking-widest text-green-800 drop-shadow-sm">
-                SIMAQ
-            </p>
-            <!-- Kepanjangan SIMAQ -->
-            <p class="text-[9px] font-bold text-green-600 tracking-wide mt-0.5">
-                Sistem Manajemen Al-Qur'an
-            </p>
-        </div>
-    </div>
-</div>
-
-@foreach([
-    ['route'=>'simaq.dashboard', 'prefix'=>'simaq.dashboard', 'label'=>'Dashboard SIMAQ', 'icon'=>'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'],
-    ['route'=>'simaq.harian.index', 'prefix'=>'simaq.harian', 'label'=>'Setoran Harian', 'icon'=>'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'],
-    ['route'=>'simaq.pemantapan.index', 'prefix'=>'simaq.pemantapan', 'label'=>'Ujian Pemantapan', 'icon'=>'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'],
-    ['route'=>'simaq.tasmi.index', 'prefix'=>'simaq.tasmi', 'label'=>'Imtihan Tasmi\'', 'icon'=>'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z'],
-    ['route'=>'simaq.huffazh.index', 'prefix'=>'simaq.huffazh', 'label'=>"Jam'iyyatul Huffazh", 'icon'=>'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z'],
-    ['route'=>'simaq.laporan.index', 'prefix'=>'simaq.laporan', 'label'=>'Cetak Rapor', 'icon'=>'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
-] as $item)
-
-<a href="{{ route($item['route']) }}"
-    class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active($item['prefix']) }}"
-    style="color: var(--text-secondary);">
-    <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="{{ $item['icon'] }}" />
-    </svg>
-    <span class="sidebar-text">{{ $item['label'] }}</span>
-</a>
-@endforeach
-
-@endif
 
 {{-- ==================== KESANTRIAN ==================== --}}
 @if($role === 'kesantrian')
@@ -466,3 +374,48 @@ $kelasWaliUtama = $kelasWaliList->first();
 
 @endif
 
+{{-- ==================== SIMAQ (TAHFIZH) ==================== --}}
+@if(Auth::user()->hasRole(['guru_tahsin_tahfizh', 'admin', 'super_admin']) || $role === 'guru_tahsin_tahfizh')
+
+<div class="pt-6 pb-2 px-3">
+    <!-- Kotak Header Spesial SIMAQ -->
+    <div class="bg-gradient-to-r from-green-50 to-transparent p-2.5 rounded-r-xl border-l-4 border-orange-500 relative overflow-hidden shadow-sm">
+        
+        <!-- Ikon Watermark Transparan di Kanan (Estetika ala Login SIMAQ) -->
+        <svg class="absolute right-0 top-0 w-10 h-10 text-green-200 transform translate-x-3 -translate-y-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+        </svg>
+        
+        <div class="relative z-10">
+            <!-- Teks SIMAQ Utama -->
+            <p class="text-[12px] font-extrabold uppercase tracking-widest text-green-800 drop-shadow-sm">
+                SIMAQ
+            </p>
+            <!-- Kepanjangan SIMAQ -->
+            <p class="text-[9px] font-bold text-green-600 tracking-wide mt-0.5">
+                Sistem Manajemen Al-Qur'an
+            </p>
+        </div>
+    </div>
+</div>
+
+@foreach(collect([
+    ['route'=>'simaq.dashboard', 'prefix'=>'simaq.dashboard', 'label'=>'Dashboard SIMAQ', 'icon'=>'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'],
+    ['route'=>'simaq.harian.index', 'prefix'=>'simaq.harian', 'label'=>'Setoran Harian', 'icon'=>'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'],
+    ['route'=>'simaq.pemantapan.index', 'prefix'=>'simaq.pemantapan', 'label'=>'Ujian Pemantapan', 'icon'=>'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'],
+    ['route'=>'simaq.tasmi.index', 'prefix'=>'simaq.tasmi', 'label'=>'Imtihan Tasmi\'', 'icon'=>'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z'],
+    ['route'=>'simaq.huffazh.index', 'prefix'=>'simaq.huffazh', 'label'=>"Jam'iyyatul Huffazh", 'icon'=>'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z'],
+    ['route'=>'simaq.laporan.index', 'prefix'=>'simaq.laporan', 'label'=>'Cetak Rapor', 'icon'=>'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
+]) as $item)
+
+    <a href="{{ route($item['route']) }}"
+        class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ $active($item['prefix']) }}"
+        style="color: var(--text-secondary);">
+        <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="{{ $item['icon'] }}" />
+        </svg>
+        <span class="sidebar-text">{{ $item['label'] }}</span>
+    </a>
+@endforeach
+
+@endif

@@ -145,4 +145,11 @@ class Santri extends Model
             ->join('kategori_pelanggaran', 'pelanggaran.kategori_pelanggaran_id', '=', 'kategori_pelanggaran.id')
             ->sum('kategori_pelanggaran.poin');
     }
+    /**
+     * Relasi ke data Penilaian SIMAQ (Tahsin/Tahfizh)
+     */
+    public function simaqPenilaians()
+    {
+        return $this->hasMany(\App\Models\SimaqPenilaian::class, 'santri_id');
+    }
 }

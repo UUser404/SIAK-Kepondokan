@@ -6,6 +6,7 @@ use App\Models\SimaqPenilaian;
 use App\Models\Santri;
 use App\Services\SimaqScoringService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SimaqController extends Controller
 {
@@ -21,19 +22,27 @@ class SimaqController extends Controller
      */
     public function dashboard()
     {
-        $user = auth()->user();
+        $user = Auth::user();
+
+        // Proteksi keamanan: Jika sistem gagal membaca user, paksa kembali ke halaman login
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'Sesi Anda telah habis. Silakan login kembali.');
+        }
+        
         $guruId = $user->tenagaPendidik->id ?? 0;
-        $isAdmin = $user->hasRole(['admin', 'super_admin']);
+        $isAdmin = $user->hasRole(['admin', 'super_admin', 'guru', 'guru_tahsin_tahfizh']);
         
         // DATA STATISTIK ATAS
         if ($isAdmin) {
             $totalPenilaian = SimaqPenilaian::count();
-            $totalSantri = Santri::whereHas('simaqPenilaians')->distinct('santri_id')->count();
-            $totalGuru = SimaqPenilaian::distinct('guru_id')->count();
+            // Cukup gunakan count() tanpa menyebut nama kolom
+            $totalSantri = Santri::whereHas('simaqPenilaians')->count();
+            $totalGuru = SimaqPenilaian::distinct('guru_id')->count('guru_id');
         } else {
             $guru = $user->tenagaPendidik;
             $totalPenilaian = $guru ? $guru->simaqPenilaians()->count() : 0;
-            $totalSantri = $guru ? $guru->simaqPenilaians()->distinct('santri_id')->count() : 0;
+            // Cara teraman: Hitung dari tabel penilaian, bukan tabel santri
+            $totalSantri = $guru ? SimaqPenilaian::where('guru_id', $guru->id)->distinct('santri_id')->count('santri_id') : 0;
             $totalGuru = 1;
         }
 
@@ -87,7 +96,7 @@ class SimaqController extends Controller
     /**
      * 3. Menampilkan detail riwayat setoran santri
      */
-    public function detailSantri($id)
+    public function detailSantri(int $id)
     {
         $santri = Santri::findOrFail($id);
         $penilaians = SimaqPenilaian::where('santri_id', $id)->latest('tanggal')->get();
@@ -98,7 +107,7 @@ class SimaqController extends Controller
     /**
      * 4. Menampilkan form input nilai baru
      */
-    public function createPenilaian($id)
+    public function createPenilaian(int $id)
     {
         $santri = Santri::findOrFail($id);
         
@@ -121,8 +130,8 @@ class SimaqController extends Controller
             'catatan'              => 'nullable|string',
         ]);
 
-        $guruId = auth()->user()->tenagaPendidik->id ?? 0;
-
+        $guruId = Auth::user()->tenagaPendidik->id ?? 0;
+        
         // Kalkulasi menggunakan Service
         $hasilKalkulasi = $this->scoringService->calculatePenilaian([
             'jenis'                => 'setoran_harian', 
@@ -153,7 +162,7 @@ class SimaqController extends Controller
     /**
      * 6. Menghapus data nilai (Soft Delete)
      */
-    public function destroyPenilaian($id)
+    public function destroyPenilaian(int $id)
     {
         $penilaian = SimaqPenilaian::findOrFail($id);
         $santriId = $penilaian->santri_id;
@@ -162,6 +171,50 @@ class SimaqController extends Controller
 
         return redirect()->route('simaq.detail', $santriId)
             ->with('success', 'Catatan nilai setoran berhasil dihapus.');
+    }
+
+    /**
+     * Menampilkan halaman pilih santri untuk dicetak rapornya
+     */
+    public function laporanIndex()
+    {
+        // Untuk tahap ini, kita tampilkan semua santri
+        $santris = \App\Models\Santri::all();
+        return view('simaq.laporan.index', compact('santris'));
+    }
+
+    /**
+     * Proses Kalkulasi & Tampilan Cetak Rapor Individu
+     */
+    public function cetakRapor(int $id)
+    {
+        $santri = \App\Models\Santri::with('simaqPenilaians')->findOrFail($id);
+        $penilaians = $santri->simaqPenilaians;
+
+        if($penilaians->isEmpty()) {
+            return back()->with('error', 'Gagal! Santri ini belum memiliki riwayat nilai setoran untuk dicetak.');
+        }
+
+        // 1. Kalkulasi Rata-rata Murni (Tilawah/Kelancaran & Tajwid)
+        $avgTilawah = round($penilaians->avg('nilai_kelancaran'), 2);
+        $avgTajwid = round($penilaians->avg('nilai_tajwid'), 2);
+
+        // 2. Konversi ke Huruf dan Predikat menggunakan Service Engine
+        $kriteriaTilawah = $this->scoringService->getKriteriaNilai($avgTilawah, 'setoran_harian');
+        $kriteriaTajwid = $this->scoringService->getKriteriaNilai($avgTajwid, 'setoran_harian');
+
+        // 3. Kalkulasi Jumlah dan Rata-rata Akhir
+        $jumlahNilai = $avgTilawah + $avgTajwid;
+        $rataRataAkhir = round($jumlahNilai / 2, 2);
+
+        // Data konfigurasi pondok dari file config/siak.php
+        $pondok = config('siak.pondok');
+
+        return view('simaq.laporan.cetak', compact(
+            'santri', 'avgTilawah', 'avgTajwid', 
+            'kriteriaTilawah', 'kriteriaTajwid', 
+            'jumlahNilai', 'rataRataAkhir', 'pondok'
+        ));
     }
 
     /**

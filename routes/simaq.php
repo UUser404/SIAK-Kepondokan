@@ -24,6 +24,10 @@ Route::middleware(['auth', 'verified', 'role:guru_tahsin_tahfizh|admin|super_adm
     // 4. Modul Jamiyyatul Huffazh (Segera Hadir)
     Route::get('/huffazh', function() { return "Halaman Jamiyyatul Huffazh (Segera Hadir)"; })->name('huffazh.index');
 
+    // Modul Laporan & Cetak Rapor SIMAQ
+    Route::get('/laporan', [SimaqController::class, 'laporanIndex'])->name('laporan.index');
+    Route::get('/laporan/cetak/{id}', [SimaqController::class, 'cetakRapor'])->name('laporan.cetak');
+
     // Modul CRUD Penilaian (Menempel pada Santri)
     Route::get('/santri/{id}', [SimaqController::class, 'detailSantri'])->name('detail');
     Route::get('/santri/{id}/nilai', [SimaqController::class, 'createPenilaian'])->name('create');
