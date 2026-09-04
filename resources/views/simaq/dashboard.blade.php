@@ -35,7 +35,7 @@
             </div>
 
             <h4 class="text-xl font-extrabold text-orange-800 mb-4 px-1 flex items-center">
-                <span class="w-2 h-6 bg-green-600 rounded mr-3"></span> Menu Utama Mutaba'ah
+                <span class="w-2 h-6 bg-green-600 rounded mr-3"></span> Menu Utama SIMAQ
             </h4>
 
             <!-- Grid Menu Utama (Dibuat sedikit lebih compact agar hemat ruang) -->
@@ -68,7 +68,7 @@
                 <!-- Kiri: Grafik 7 Hari Terakhir (Mengambil porsi 2 kolom) -->
                 <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                     <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center justify-between">
-                        <span>Tren Setoran (7 Hari Terakhir)</span>
+                        <span>Progres Setoran (7 Hari Terakhir)</span>
                         <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded font-semibold">Live Data</span>
                     </h4>
                     <!-- Wadah Grafik -->
