@@ -3,7 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
-
+use App\Http\Controllers\Simaq\PemantapanController;
+use App\Http\Controllers\Simaq\TasmiController;
+use App\Http\Controllers\Simaq\HuffazhController;
 // ============================================================
 // Guest routes
 // ============================================================
