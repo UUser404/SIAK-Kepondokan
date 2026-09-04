@@ -24,8 +24,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // 0. PAKSA HTTPS (Solusi Mixed Content di belakang ngrok/proxy)
-        URL::forceScheme('https');
 
         // 1. REGISTRASI ALIAS LAYOUT (Solusi Error Browser Halaman Admin/Pendidik)
         Blade::component('layouts.app', 'layouts.app');
