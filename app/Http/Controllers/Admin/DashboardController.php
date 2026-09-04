@@ -16,7 +16,7 @@ class DashboardController extends Controller
     {
         $totalSantri   = Santri::aktif()->count();
         $totalPendidik = TenagaPendidik::count();
-        $totalPpdb     = PpdbPendaftar::where('status', 'menunggu')->count();
+        $totalPpdb     = PpdbPendaftar::menungguVerifikasiPembayaran()->count();
         $totalSurat    = SuratKeluar::where('status', 'diterbitkan')
             ->whereMonth('created_at', now()->month)->count();
 
