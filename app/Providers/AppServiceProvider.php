@@ -5,7 +5,6 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\URL;
 use App\Models\SimaqPenilaian;
 use App\Observers\SimaqPenilaianObserver;
 
@@ -24,8 +23,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // 0. PAKSA HTTPS (Solusi Mixed Content di belakang ngrok/proxy)
-        URL::forceScheme('https');
 
         // 1. REGISTRASI ALIAS LAYOUT (Solusi Error Browser Halaman Admin/Pendidik)
         Blade::component('layouts.app', 'layouts.app');
