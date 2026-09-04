@@ -26,6 +26,7 @@ Berikut adalah file lengkap `DEVELOPER_GUIDE.md` yang sudah diperbarui dengan **
 9. [Riwayat & Catatan Perbaikan](#riwayat--catatan-perbaikan)
 10. [Masalah yang Diketahui, Belum Diperbaiki](#masalah-yang-diketahui-belum-diperbaiki)
 11. [Kredensial Testing](#kredensial-testing)
+12. [Modul/ Dokumentasi SIMAQ] Untuk pengembangan, perubahan, dan logika sistem khusus program Tahsin/Tahfizh (SIMAQ), silakan merujuk secara eksklusif ke dokumen terpisah: [SIMAQ_GUIDE.md](./SIMAQ_GUIDE.md).
 
 ---
 
