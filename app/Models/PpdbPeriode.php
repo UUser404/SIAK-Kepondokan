@@ -17,6 +17,8 @@ class PpdbPeriode extends Model
         'tanggal_buka',
         'tanggal_tutup',
         'kuota',
+        'biaya_pendaftaran',
+        'info_pembayaran',
         'is_active',
         'persyaratan',
     ];
@@ -24,10 +26,11 @@ class PpdbPeriode extends Model
     protected function casts(): array
     {
         return [
-            'tanggal_buka'    => 'date',
-            'tanggal_tutup'   => 'date',
-            'is_active'       => 'boolean',
-            'kuota'           => 'integer',
+            'tanggal_buka'      => 'date',
+            'tanggal_tutup'     => 'date',
+            'is_active'         => 'boolean',
+            'kuota'             => 'integer',
+            'biaya_pendaftaran' => 'integer',
         ];
     }
 
@@ -41,10 +44,16 @@ class PpdbPeriode extends Model
         return $this->hasMany(PpdbPendaftar::class);
     }
 
+    /**
+     * Sisa kuota dihitung dari yang status_akhir SUDAH 'diterima' --
+     * bukan dari status_berkas/status_pembayaran, karena orang yang
+     * berkasnya terverifikasi tapi belum bayar/belum final diputuskan
+     * belum tentu jadi beneran masuk, jadi belum boleh motong kuota.
+     */
     public function getSisaKuotaAttribute(): int
     {
         return $this->kuota - $this->pendaftar()
-            ->where('status', 'diterima')->count();
+            ->where('status_akhir', 'diterima')->count();
     }
 
     public function getIsBukaAttribute(): bool

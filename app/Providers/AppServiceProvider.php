@@ -23,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+
         // 1. REGISTRASI ALIAS LAYOUT (Solusi Error Browser Halaman Admin/Pendidik)
         Blade::component('layouts.app', 'layouts.app');
         Blade::component('layouts.app', 'app-layout'); // Taktik sapu jagat halaman lama

@@ -135,35 +135,6 @@
                 onmouseout="this.style.color='var(--siakad-primary)'">
                 Daftar PPDB Online →
             </a>
-            <!-- KOTAK LINK KE PORTAL SIMAQ (Instan Render) -->
-        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
-            <a href="{{ route('simaq.login') }}" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-radius: 0.75rem; border: 1px solid rgba(34, 197, 94, 0.2); background-color: rgba(34, 197, 94, 0.05); text-decoration: none; transition: all 0.3s;" onmouseover="this.style.backgroundColor='rgba(34, 197, 94, 0.1)'; this.style.borderColor='rgba(34, 197, 94, 0.4)';" onmouseout="this.style.backgroundColor='rgba(34, 197, 94, 0.05)'; this.style.borderColor='rgba(34, 197, 94, 0.2)';">
-
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <!-- Icon Buku Al-Qur'an -->
-                    <div style="padding: 0.5rem; background-color: rgba(34, 197, 94, 0.1); border-radius: 0.5rem;">
-                        <svg style="width: 1.5rem; height: 1.5rem; color: #22c55e;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                        </svg>
-                    </div>
-
-                    <!-- Teks -->
-                    <div style="text-align: left;">
-                        <h3 style="margin: 0; font-size: 0.875rem; font-weight: 600; color: #4ade80;">
-                            Guru Tahsin-Tahfizh? Masuk SIMAQ
-                        </h3>
-                        <p style="margin: 0; font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">
-                            Portal khusus Mutaba'ah Al-Qur'an
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Panah Kanan -->
-                <svg style="width: 1.25rem; height: 1.25rem; color: rgba(34, 197, 94, 0.5);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-            </a>
-        </div>
         </p>
     </form>
 </x-guest-layout>
