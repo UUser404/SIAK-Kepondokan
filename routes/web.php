@@ -57,14 +57,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Penilaian
         Route::get('nilai', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'index'])->name('nilai.index');
-        // Catatan perbaikan: sebelumnya route ini "nilai/{kelas}/{mapel}" padahal controller & filter form
-        // membaca kelas_id/mapel_id sebagai query string (GET), bukan route segment -> selalu error
-        // "Missing required parameter [mapel]" saat diklik dari halaman index. Diperbaiki jadi path polos.
         Route::get('nilai/detail', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'show'])->name('nilai.show');
         Route::post('nilai/finalize', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'finalize'])->name('nilai.finalize');
         Route::post('nilai/finalize-kelas', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'finalizeKelas'])->name('nilai.finalize-kelas');
         Route::post('nilai/finalize-semua', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'finalizeAll'])->name('nilai.finalize-all');
-        // FR-14: export nilai & presensi ke Excel (kelas_id & mapel_id dikirim sebagai query string)
         Route::get('nilai/export', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'exportNilai'])->name('nilai.export');
         Route::get('presensi/export', [\App\Http\Controllers\Kurikulum\NilaiController::class, 'exportPresensi'])->name('presensi.export');
 
@@ -138,7 +134,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('rapor/{santri}/cetak-arab', [\App\Http\Controllers\Kurikulum\RaporController::class, 'cetakArab'])->name('rapor.cetak-arab');
 
         // Leger Nilai
-        // Leger Nilai -- reuse Kurikulum\LegerController, guard akses ada di controller itu sendiri
         Route::get('leger-nilai', [\App\Http\Controllers\Kurikulum\LegerController::class, 'index'])->name('leger-nilai.index');
         Route::get('leger-nilai/{kelas}', [\App\Http\Controllers\Kurikulum\LegerController::class, 'show'])->name('leger-nilai.show');
         Route::get('leger-nilai/{kelas}/cetak', [\App\Http\Controllers\Kurikulum\LegerController::class, 'cetak'])->name('leger-nilai.cetak');
@@ -158,16 +153,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Asrama & Kamar
         Route::resource('asrama', \App\Http\Controllers\Kesantrian\AsramaController::class);
-        // Perbaikan: KamarController hanya punya method index()/store()/update() -- TIDAK ADA
-        // create()/show()/edit()/destroy() standar. "Route::resource('kamar', ...)" sebelumnya
-        // tetap mendaftarkan route utuh untuk method yang tidak ada itu (bisa 500 kalau diakses,
-        // pola sama seperti bug ppdb yang sudah diperbaiki). Diganti eksplisit sesuai method nyata.
         Route::get('kamar', [\App\Http\Controllers\Kesantrian\KamarController::class, 'index'])->name('kamar.index');
         Route::post('kamar', [\App\Http\Controllers\Kesantrian\KamarController::class, 'store'])->name('kamar.store');
         Route::put('kamar/{kamar}', [\App\Http\Controllers\Kesantrian\KamarController::class, 'update'])->name('kamar.update');
         Route::post('kamar/{kamar}/tempatkan', [\App\Http\Controllers\Kesantrian\KamarController::class, 'tempatkan'])->name('kamar.tempatkan');
-        // Perbaikan: route ini sebelumnya belum ada padahal KamarController::keluarkan() sudah ada
-        // dan sudah dipanggil dari resources/views/asrama/show.blade.php -> selalu error "Route not found".
         Route::patch('kamar/{penempatan}/keluarkan', [\App\Http\Controllers\Kesantrian\KamarController::class, 'keluarkan'])->name('kamar.keluarkan');
 
         // Pelanggaran
@@ -178,11 +167,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('prestasi', \App\Http\Controllers\Kesantrian\PrestasiController::class);
 
         // Rekap
-        // Catatan perbaikan: sebelumnya kedua route ini mengarah ke RekapController@pelanggaran
-        // dan RekapController@presensi, yang masing-masing me-return view('kesantrian.rekap.pelanggaran')
-        // dan view('kesantrian.rekap.presensi') — TAPI kedua file view tsb TIDAK PERNAH ADA di project ini,
-        // jadi keduanya pasti error "View not found" saat diakses. Diarahkan ke controller/view yang
-        // sudah benar-benar ada dan berfungsi.
         Route::get('rekap/pelanggaran', [\App\Http\Controllers\Kesantrian\PelanggaranController::class, 'index'])->name('rekap.pelanggaran');
         Route::get('rekap/presensi', [\App\Http\Controllers\Kesantrian\PresensiKegiatanController::class, 'rekap'])->name('rekap.presensi');
     });
@@ -205,6 +189,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('santri/import-bulk', [\App\Http\Controllers\Admin\SantriController::class, 'importBulk'])->name('santri.import-bulk');
         Route::post('santri/import-bulk/preview', [\App\Http\Controllers\Admin\SantriController::class, 'previewBulk'])->name('santri.import-bulk.preview');
         Route::post('santri/import-bulk/store', [\App\Http\Controllers\Admin\SantriController::class, 'storeBulk'])->name('santri.import-bulk.store');
+
+        // PERBAIKAN: Import Santri Baru (CREATE massal) dibatasi khusus
+        // sysadmin -- beda dari Import Massal di atas (UPDATE kelas/asrama
+        // santri yang sudah ada) yang tetap boleh diakses role admin biasa.
+        // Middleware role:sysadmin di sini MENAMBAH syarat di atas
+        // role:admin|sysadmin yang sudah berlaku untuk seluruh grup 'admin'
+        // (bukan menggantikannya) -- hasil akhirnya cuma sysadmin yang lolos
+        // ke 4 route ini, walau admin biasa tetap lolos middleware grup luar.
+        // Tetap didaftarkan SEBELUM Route::resource('santri', ...) dengan
+        // alasan sama seperti route literal lain di atas.
+        Route::middleware('role:sysadmin')->group(function () {
+            Route::get('santri/import-baru', [\App\Http\Controllers\Admin\SantriController::class, 'importBaru'])->name('santri.import-baru');
+            Route::get('santri/import-baru-template', [\App\Http\Controllers\Admin\SantriController::class, 'importBaruTemplate'])->name('santri.import-baru-template');
+            Route::post('santri/import-baru/preview', [\App\Http\Controllers\Admin\SantriController::class, 'previewBaru'])->name('santri.import-baru.preview');
+            Route::post('santri/import-baru/store', [\App\Http\Controllers\Admin\SantriController::class, 'storeBaru'])->name('santri.import-baru.store');
+        });
+
         Route::get('santri/{santri}/profil', [\App\Http\Controllers\Admin\SantriController::class, 'profil'])->name('santri.profil');
         Route::resource('santri', \App\Http\Controllers\Admin\SantriController::class);
 
@@ -223,13 +224,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('komponen-nilai', \App\Http\Controllers\Admin\KomponenNilaiController::class);
 
         // PPDB
-        // Perbaikan: sebelumnya "Route::resource('ppdb', PpdbController::class)" -- padahal controller
-        // TIDAK punya method create()/store()/show()/edit()/update()/destroy() standar (yang ada malah
-        // createPeriode()/storePeriode()/aktifkanPeriode()/showPendaftar()/showDetail()). View yang
-        // dipakai memanggil nama route 'admin.ppdb.create-periode', 'admin.ppdb.aktifkan',
-        // 'admin.ppdb.pendaftar', 'admin.ppdb.detail' yang sebelumnya sama sekali tidak terdaftar
-        // -> selalu "Route not found". Diganti route eksplisit yang cocok, sekaligus menghindari
-        // resource route "hantu" yang bisa 500 (BadMethodCallException) kalau tidak sengaja diakses.
         Route::get('ppdb', [\App\Http\Controllers\Admin\PpdbController::class, 'index'])->name('ppdb.index');
         Route::get('ppdb/create-periode', [\App\Http\Controllers\Admin\PpdbController::class, 'createPeriode'])->name('ppdb.create-periode');
         Route::post('ppdb/periode', [\App\Http\Controllers\Admin\PpdbController::class, 'storePeriode'])->name('ppdb.store-periode');
@@ -242,9 +236,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('ppdb/{pendaftar}/konversi', [\App\Http\Controllers\Admin\PpdbController::class, 'konversiKeSantri'])->name('ppdb.konversi');
 
         // Surat
-        // Perbaikan: route 'surat/template-konten' harus didaftarkan SEBELUM Route::resource('surat', ...),
-        // supaya tidak "ketutupan" oleh route resource show ('surat/{surat}') yang polanya sama-sama
-        // "surat/{sesuatu}" dan akan lebih dulu dicoba dicocokkan oleh Laravel.
         Route::get('surat/template-konten', [\App\Http\Controllers\Admin\SuratController::class, 'getKontenTemplate'])->name('surat.template-konten');
         Route::resource('surat', \App\Http\Controllers\Admin\SuratController::class);
         Route::resource('template-surat', \App\Http\Controllers\Admin\TemplateSuratController::class);
@@ -286,8 +277,6 @@ Route::prefix('ppdb')->name('ppdb.public.')->group(function () {
 
 // Rute Khusus Halaman Login SIMAQ
 Route::middleware('guest')->get('/simaq/login', function () {
-    // Trik Cerdas: Beritahu sistem bahwa setelah login sukses, 
-    // user HARUS diarahkan ke Dashboard SIMAQ, bukan Dashboard SIAK.
     session(['url.intended' => route('simaq.dashboard')]);
 
     return view('simaq.login');
@@ -295,11 +284,6 @@ Route::middleware('guest')->get('/simaq/login', function () {
 
 use App\Http\Controllers\SimaqController;
 
-// PERHATIKAN BARIS INI: middleware-nya sekarang mencari 'guru_tahsin_tahfizh'
-// RUTE KHUSUS SIMAQ (Guru Tahsin-Tahfizh)
-// PERHATIKAN BARIS INI: middleware-nya sekarang mencari 'guru_tahsin_tahfizh'
-// RUTE KHUSUS SIMAQ (Guru Tahsin-Tahfizh)
 Route::middleware(['auth', 'role:guru_tahsin_tahfizh|admin|super_admin'])->prefix('simaq')->name('simaq.')->group(function () {
-    // ... hapus semua isinya sampai ...
     Route::delete('/nilai/{id}', [App\Http\Controllers\SimaqController::class, 'destroy'])->name('destroy');
 });

@@ -107,7 +107,7 @@
                 {{-- PERBAIKAN: onclick mencegat klik kalau kelas masih kosong --
                      lihat modal + script di bawah. --}}
                 <a href="{{ route('admin.santri.import-bulk') }}"
-                    onclick="return cekKelasSebelumBulk(event)"
+                    onclick="return cekKelasSebelumLanjut(event)"
                     class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl
                       border border-gray-200
                       text-siakad-secondary
@@ -118,6 +118,27 @@
                     </svg>
                     Import Massal
                 </a>
+                {{-- PERBAIKAN: tombol baru -- Import Santri Baru (create, beda
+                     dari Import Massal di atas yang cuma update kelas/asrama
+                     santri yang SUDAH ADA). Dibatasi khusus sysadmin (lihat
+                     middleware role:sysadmin tambahan di web.php) -- @role di
+                     sini cuma soal tampilan, bukan pengaman sebenarnya; kalau
+                     tombolnya disembunyikan tapi middleware route-nya lupa
+                     dipasang, tetap bisa diakses lewat URL langsung. --}}
+                @role('sysadmin')
+                <a href="{{ route('admin.santri.import-baru') }}"
+                    onclick="return cekKelasSebelumLanjut(event)"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl
+                      border border-gray-200
+                      text-siakad-secondary
+                      hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 4v16m8-8H4" />
+                    </svg>
+                    Import Santri Baru
+                </a>
+                @endrole
             </div>
         </form>
     </div>
@@ -302,7 +323,7 @@
             <p class="font-semibold text-siakad-dark mb-1.5">Kelas masih kosong</p>
             <p class="text-sm text-siakad-secondary">
                 Belum ada data kelas untuk tahun ajaran aktif. Silakan hubungi Kurikulum
-                untuk membuat kelas terlebih dahulu sebelum import bulk santri.
+                untuk membuat kelas terlebih dahulu sebelum lanjut.
             </p>
             <button type="button"
                 onclick="document.getElementById('modal-kelas-kosong').classList.add('hidden')"
@@ -314,7 +335,7 @@
     </div>
 
     <script>
-        function cekKelasSebelumBulk(e) {
+        function cekKelasSebelumLanjut(e) {
             @if($kelasKosong)
             e.preventDefault();
             const modal = document.getElementById('modal-kelas-kosong');

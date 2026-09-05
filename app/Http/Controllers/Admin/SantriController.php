@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\SantriExport;
 use App\Http\Controllers\Controller;
+use App\Imports\SantriBaruImport;
 use App\Imports\SantriKelasAsramaImport;
 use App\Models\Asrama;
 use App\Models\Kelas;
@@ -11,6 +12,7 @@ use App\Models\Santri;
 use App\Models\SantriKelas;
 use App\Models\TahunAjaran;
 use App\Services\ActivityLogService;
+use App\Services\SantriCreateService;
 use App\Services\SantriImportService;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -316,6 +318,111 @@ class SantriController extends Controller
 
             return redirect()->route('admin.santri.index')
                 ->with('success', "Bulk import selesai: {$results['success']} berhasil, {$results['skipped']} skip, {$results['failed']} gagal")
+                ->with('messages', $results['messages']);
+        } catch (\Exception $e) {
+            return back()->withErrors(['message' => 'Error saat menyimpan data: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Tampilkan form untuk import santri BARU (create, bukan update kelas/
+     * asrama santri yang sudah ada -- lihat importBulk() untuk itu).
+     * Dipakai untuk migrasi data awal (mis. 300-1000 santri dari catatan
+     * lama), bukan pemakaian rutin.
+     */
+    public function importBaru()
+    {
+        $ta = TahunAjaran::aktif();
+
+        if (!$ta) {
+            return redirect()->route('admin.santri.index')
+                ->with('error', 'Belum ada Tahun Ajaran aktif. Aktifkan Tahun Ajaran dulu sebelum import santri baru.');
+        }
+
+        $jumlahKelasTaAktif = Kelas::where('tahun_ajaran_id', $ta->id)->count();
+
+        if ($jumlahKelasTaAktif === 0) {
+            return redirect()->route('admin.santri.index')
+                ->with('error', 'Kelas masih kosong untuk Tahun Ajaran ' . $ta->nama_lengkap . '. Silakan buat kelas dulu sebelum import santri baru.');
+        }
+
+        return view('santri.import-baru', compact('ta'));
+    }
+
+    /**
+     * Download template Excel untuk fitur Import Santri Baru.
+     */
+    public function importBaruTemplate()
+    {
+        return Excel::download(
+            new \App\Exports\SantriCreateTemplateExport(),
+            'template-santri-baru.xlsx'
+        );
+    }
+
+    /**
+     * Handle preview data santri baru sebelum save.
+     */
+    public function previewBaru(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+        ]);
+
+        $ta = TahunAjaran::aktif();
+        if (!$ta) {
+            return back()->withErrors(['file' => 'Belum ada Tahun Ajaran aktif.']);
+        }
+
+        try {
+            $rows = Excel::toCollection(
+                new SantriBaruImport(),
+                $request->file('file')
+            )->flatten(1);
+
+            $rowsArray = $rows->map(function ($row) {
+                return $row->toArray();
+            })->toArray();
+
+            $service = new SantriCreateService($ta);
+            $preview = $service->validateAndPrepare($rowsArray);
+
+            $request->session()->put('santri_baru_preview', $preview);
+
+            return view('santri.import-baru-preview', compact('preview', 'ta'));
+        } catch (ValidationException $e) {
+            return back()->withErrors(['file' => 'File Excel tidak valid: ' . $e->getMessage()]);
+        } catch (\Exception $e) {
+            return back()->withErrors(['file' => 'Error membaca file: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Simpan santri baru setelah preview dikonfirmasi.
+     */
+    public function storeBaru(Request $request)
+    {
+        $preview = $request->session()->get('santri_baru_preview');
+
+        if (!$preview) {
+            return redirect()->route('admin.santri.import-baru')
+                ->withErrors(['message' => 'Session preview telah expired, silakan upload ulang']);
+        }
+
+        $approvals = [];
+        foreach ($preview['records'] as $index => $record) {
+            $approvals[$index] = $request->input("action_{$index}", 'approve');
+        }
+
+        try {
+            $ta = TahunAjaran::aktif();
+            $service = new SantriCreateService($ta);
+            $results = $service->save($approvals, $preview);
+
+            $request->session()->forget('santri_baru_preview');
+
+            return redirect()->route('admin.santri.index')
+                ->with('success', "Import santri baru selesai: {$results['success']} berhasil dibuat, {$results['skipped']} dilewati, {$results['failed']} gagal")
                 ->with('messages', $results['messages']);
         } catch (\Exception $e) {
             return back()->withErrors(['message' => 'Error saat menyimpan data: ' . $e->getMessage()]);
