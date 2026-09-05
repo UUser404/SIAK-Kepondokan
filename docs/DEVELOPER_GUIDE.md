@@ -66,6 +66,7 @@ Route::prefix('guru')->name('guru.')->middleware('role:guru')->group(...);
 Route::prefix('kesantrian')->name('kesantrian.')->middleware('role:kesantrian|sysadmin')->group(...);
 Route::prefix('sysadmin')->name('sysadmin.')->middleware('role:sysadmin')->group(...);
 ```
+
 ````
 
 ⚠️ **Jangan pakai `Route::resource()` untuk controller yang tidak punya ke-7 method standarnya** (`index/create/store/show/edit/update/destroy`). Ini sudah dua kali jadi sumber bug ("ghost route" — route terdaftar tapi controller-nya tidak punya method itu, jadi 500 error kalau diakses). Lihat [§9](#riwayat--catatan-perbaikan) poin PPDB & Kamar.
@@ -401,6 +402,23 @@ Bug signifikan yang **sudah ditemukan & diperbaiki**. Kalau ketemu kode yang "te
     - **`SantriImportTemplateExport.php`**: header kolom Excel pertama diganti dari "NIS" jadi "NISN" -- **kalau ada admin yang masih pakai template lama (header "NIS")**, upload akan gagal cocok karena `WithHeadingRow` nge-slug jadi `nis`, sedangkan `SantriImportService` sekarang baca key `nisn`. Perlu sosialisasi ke admin supaya download ulang template kalau masih pakai file lama.
     - **View yang ikut disesuaikan**: `santri/import-preview.blade.php` (kolom tabel "NISN"), `santri/_form.blade.php` (field NISN dipindah ke urutan pertama + jadi wajib, NIS jadi opsional), `santri/edit.blade.php` (subtitle header tampilkan NISN, bukan NIS lagi -- karena NIS sekarang bisa `null`).
     - **Belum disentuh, masih pakai NIS**: filter pencarian santri di `santri/index.blade.php` -- placeholder input sudah menyebut "Cari nama, NIS, NISN..." tapi query di `SantriController::index()` cuma `orWhere('nis', 'like', ...)`, belum ditambah `orWhere('nisn', ...)`. Placeholder saat ini sedikit menyesatkan (menjanjikan bisa cari by NISN padahal belum).
+32. **IP pengunjung selalu tercatat sebagai IP server (127.0.0.1), bukan IP asli — kasus deployment via Cloudflare Tunnel**:
+    - **Konteks deployment**: project ini dijalankan lokal (`php artisan serve`, default bind ke `127.0.0.1`) lalu diekspos ke internet lewat **Cloudflare Tunnel** (`cloudflared`) yang jalan di komputer yang sama. Alur trafiknya: pengunjung → Cloudflare Edge → `cloudflared` (lokal) → Laravel (`127.0.0.1`).
+    - **Root cause**: `cloudflared` connect ke Laravel lewat `127.0.0.1`, jadi dari sudut pandang Laravel, koneksi selalu datang dari localhost. Cloudflare **sudah** mengirim IP asli pengunjung lewat header (`X-Forwarded-For`, `CF-Connecting-IP`), tapi Laravel **default-nya tidak mempercayai header itu dari siapapun** (termasuk dari `127.0.0.1`) -- ini fitur keamanan bawaan supaya orang tidak bisa kirim header palsu buat nyamar jadi IP lain. Akibatnya `$request->ip()` (dipakai di `ActivityLogService` dan tempat lain) selalu balikin `127.0.0.1` / IP komputer server, bukan IP pengunjung asli.
+    - **Fix**: project ini pakai struktur Laravel 11+/13 (`bootstrap/app.php`, TIDAK ADA `app/Http/Kernel.php` maupun `TrustProxies.php`) -- jadi konfigurasi trusted proxy ditaruh di `bootstrap/app.php`, di dalam closure `->withMiddleware()`:
+      ```php
+      $middleware->trustProxies(
+          at: '127.0.0.1',
+          headers: Request::HEADER_X_FORWARDED_FOR |
+              Request::HEADER_X_FORWARDED_HOST |
+              Request::HEADER_X_FORWARDED_PORT |
+              Request::HEADER_X_FORWARDED_PROTO,
+      );
+      ```
+      `at: '127.0.0.1'` artinya "cuma percaya header forward yang datang dari proxy yang connect dari localhost" -- setelah ini, `$request->ip()` baca IP asli dari `X-Forwarded-For`, bukan lagi dari koneksi TCP langsung (`127.0.0.1`).
+    - **Wajib `php artisan optimize:clear` setelah ubah `bootstrap/app.php`** kalau ada `config:cache` yang aktif, karena config Laravel di-cache dan perubahan tidak kepakai sebelum di-clear.
+    - **Catatan keamanan, jangan diabaikan**: `at: '127.0.0.1'` ini aman SELAMA Laravel benar-benar cuma bisa diakses lewat `cloudflared` (satu pintu masuk). Kalau nanti ada yang ganti jadi `at: '*'` (percaya semua proxy) supaya lebih fleksibel, itu cuma aman selama server tidak juga kebuka ke jaringan lain di luar `cloudflared` (mis. lewat port forwarding tambahan) -- kalau `'*'` dipasang dan server ternyata bisa diakses langsung dari jaringan lokal, siapapun di jaringan itu bisa kirim `X-Forwarded-For` palsu langsung ke Laravel dan nyamar jadi IP manapun.
+    - **Belum dicek**: apakah konfigurasi `cloudflared` (named tunnel `config.yml` atau Quick Tunnel) perlu setting tambahan supaya `CF-Connecting-IP`/`X-Forwarded-For` terkirim -- secara default Cloudflare sudah otomatis mengirim header ini tanpa setting khusus, jadi kemungkinan besar tidak perlu, tapi belum ada verifikasi langsung dari log tunnel yang bersangkutan.
 
 ---
 
@@ -427,4 +445,4 @@ Lihat [README.md § Default Users](../README.md#default-users) — semua akun pa
 ---
 
 _Dokumen ini dibuat berdasarkan riwayat pengembangan sistem secara kolaboratif. Kalau ada keputusan desain di kode yang tidak terjelaskan di sini, kemungkinan besar itu bagian yang belum sempat didokumentasikan — bukan berarti boleh diubah bebas tanpa konfirmasi ulang ke pemilik sistem._
-
+````
