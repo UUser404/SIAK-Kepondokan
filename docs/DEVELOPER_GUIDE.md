@@ -1,10 +1,3 @@
-# ✅ Full `DEVELOPER_GUIDE.md` dengan Perubahan Terbaru
-
-Berikut adalah file lengkap `DEVELOPER_GUIDE.md` yang sudah diperbarui dengan **Riwayat & Catatan Perbaikan** poin 15 tentang Rapor Arab:
-
----
-
-````markdown
 # Developer & AI Agent Guide — SIAK-AI Kepondokan
 
 > **Tujuan dokumen ini:** referensi teknis lengkap supaya developer manusia maupun AI coding agent (Claude Code, dsb.) bisa langsung paham arsitektur sistem ini tanpa perlu membaca ulang seluruh kode dari nol — termasuk keputusan desain yang **sengaja menyimpang** dari dokumen SRS awal, dan bug-bug yang **sudah pernah ditemukan & diperbaiki** (supaya tidak diperbaiki ulang atau, lebih buruk, diperkenalkan lagi).
@@ -401,6 +394,13 @@ Bug signifikan yang **sudah ditemukan & diperbaiki**. Kalau ketemu kode yang "te
         2. **Sisi controller** (`SantriController::importBulk()`, jaring pengaman kalau ada yang akses URL `import-bulk` langsung tanpa lewat tombol): cek TA aktif & jumlah kelas dilakukan di awal method, **sebelum** `view('santri.import-bulk', ...)` dipanggil -- kalau kelas kosong (atau belum ada TA aktif), langsung `redirect()->route('admin.santri.index')->with('error', ...)`. Banner-dengan-link-rusak di `import-bulk.blade.php` sudah dihapus total -- halaman itu sekarang selalu dirender dalam kondisi kelas dipastikan sudah ada isinya.
     - **Gap tambahan yang ketahuan pas nambal ini**: `santri/index.blade.php` sebelumnya **tidak punya tempat menampilkan flash message sama sekali** -- jadi redirect `->with('error', ...)` dari controller (mis. kasus "belum ada TA aktif") selama ini silent, user cuma lihat halaman reload tanpa penjelasan. Ditambal sekalian: blok `@if(session('error'))` yang menampilkan popup modal berisi teks error dari session, dipakai bareng oleh kedua guard di atas (jaring pengaman URL langsung maupun kasus TA belum aktif) supaya wording-nya konsisten tanpa duplikasi di 2 tempat.
     - **Bug turunan kecil di `SantriImportService::processRow()`** (ditemukan pas review, bukan penyebab 500 di atas): `kelas_valid` dan `asrama_valid` default `true` di inisialisasi `$record`, tapi cabang "tidak ketemu" (`if (!$kelas)` / `if (!$asrama)`) cuma nambah ke `errors[]`, tidak pernah balikin flag itu ke `false`. Tidak menyebabkan salah tampil di preview (karena `validateAndPrepare()` cek `errors` duluan sebelum cek flag ini), tapi datanya sendiri tidak akurat -- diperbaiki supaya kedua flag konsisten dengan kondisi sebenarnya, buat jaga-jaga kalau ke depan ada kode lain yang baca flag ini langsung tanpa lewat cek `errors`.
+31. **Identitas santri untuk Import Kelas & Asrama Massal (dan form satuan) — diganti dari NIS jadi NISN**:
+    - **Keputusan**: NISN sekarang jadi identitas utama santri (wajib + unik), NIS jadi opsional (boleh kosong, tetap unik kalau diisi). Sebelumnya kebalikannya (NIS wajib, NISN opsional) -- diubah karena NISN yang sifatnya nasional/permanen, cocok jadi kunci pencocokan yang lebih stabil dibanding NIS yang bisa beda skema penomoran antar tahun ajaran/pondok.
+    - **`SantriController::store()` & `update()`**: validasi `nisn` jadi `['required', 'string', 'unique:santri,nisn']` (atau `,{$santri->id}` di update), `nis` jadi `['nullable', 'string', 'unique:santri,nis']`.
+    - **`SantriImportService::processRow()`**: pencocokan santri dari Excel sekarang `Santri::where('nisn', $nisn)->first()`, bukan `where('nis', ...)` lagi. Key array `$record['nis']` diganti jadi `$record['nisn']` di seluruh service (termasuk pesan-pesan di `errors[]`/`messages[]` pada `save()`).
+    - **`SantriImportTemplateExport.php`**: header kolom Excel pertama diganti dari "NIS" jadi "NISN" -- **kalau ada admin yang masih pakai template lama (header "NIS")**, upload akan gagal cocok karena `WithHeadingRow` nge-slug jadi `nis`, sedangkan `SantriImportService` sekarang baca key `nisn`. Perlu sosialisasi ke admin supaya download ulang template kalau masih pakai file lama.
+    - **View yang ikut disesuaikan**: `santri/import-preview.blade.php` (kolom tabel "NISN"), `santri/_form.blade.php` (field NISN dipindah ke urutan pertama + jadi wajib, NIS jadi opsional), `santri/edit.blade.php` (subtitle header tampilkan NISN, bukan NIS lagi -- karena NIS sekarang bisa `null`).
+    - **Belum disentuh, masih pakai NIS**: filter pencarian santri di `santri/index.blade.php` -- placeholder input sudah menyebut "Cari nama, NIS, NISN..." tapi query di `SantriController::index()` cuma `orWhere('nis', 'like', ...)`, belum ditambah `orWhere('nisn', ...)`. Placeholder saat ini sedikit menyesatkan (menjanjikan bisa cari by NISN padahal belum).
 
 ---
 
@@ -428,18 +428,3 @@ Lihat [README.md § Default Users](../README.md#default-users) — semua akun pa
 
 _Dokumen ini dibuat berdasarkan riwayat pengembangan sistem secara kolaboratif. Kalau ada keputusan desain di kode yang tidak terjelaskan di sini, kemungkinan besar itu bagian yang belum sempat didokumentasikan — bukan berarti boleh diubah bebas tanpa konfirmasi ulang ke pemilik sistem._
 
-```
-
----
-
-## 📋 **Ringkasan Perubahan**
-
-| Bagian | Perubahan |
-|--------|-----------|
-| **Riwayat & Catatan Perbaikan** | ✅ Ditambahkan poin 15 tentang Rapor Arab (migrasi Dompdf → mPDF, perbaikan layout, helper angka Arab, tanggal Hijriah fallback) |
-| **Masalah yang Diketahui** | ✅ Poin 9 dicoret dan ditandai **SUDAH DIPERBAIKI** dengan referensi ke poin 15 |
-
----
-
-**Sekarang `DEVELOPER_GUIDE.md` sudah terupdate dengan semua perubahan rapor Arab!** 😊
-```
