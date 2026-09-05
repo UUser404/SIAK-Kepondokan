@@ -32,8 +32,10 @@ class SantriImportService
      *
      * @param array $rows - Array data dari Excel. Maatwebsite\Excel dengan
      *   WithHeadingRow default nge-slug header ("Nama Lengkap" -> nama_lengkap,
-     *   "Nama Arab" -> nama_arab, "NIS" -> nis, dst) -- jadi key di $row HARUS
-     *   pakai bentuk slug ini, bukan nama kolom aslinya.
+     *   "Nama Arab" -> nama_arab, "NISN" -> nisn, dst) -- jadi key di $row HARUS
+     *   pakai bentuk slug ini, bukan nama kolom aslinya. PERBAIKAN: pencocokan
+     *   santri sekarang pakai kolom "NISN" (bukan "NIS" lagi) -- pastikan
+     *   template Excel & SantriImportTemplateExport ikut disesuaikan headernya.
      * @return array Preview data dengan struktur: ['records' => [...], 'summary' => [...]]
      */
     public function validateAndPrepare(array $rows): array
@@ -70,12 +72,12 @@ class SantriImportService
      * Process satu row dari Excel.
      *
      * Key di $row pakai bentuk slug (default HeadingRowFormatter Maatwebsite\Excel):
-     * "NIS" -> nis, "Nama Lengkap" -> nama_lengkap, "Nama Arab" -> nama_arab,
+     * "NISN" -> nisn, "Nama Lengkap" -> nama_lengkap, "Nama Arab" -> nama_arab,
      * "Kelas" -> kelas, "Asrama" -> asrama.
      */
     private function processRow(array $row, int $rowNumber): array
     {
-        $nis         = trim($row['nis'] ?? '');
+        $nisn        = trim($row['nisn'] ?? '');
         $namaLengkap = trim($row['nama_lengkap'] ?? '');
         $namaArab    = trim($row['nama_arab'] ?? '');
         $kelasBaru   = trim($row['kelas'] ?? '');
@@ -83,7 +85,7 @@ class SantriImportService
 
         $record = [
             'row_number' => $rowNumber,
-            'nis' => $nis,
+            'nisn' => $nisn,
             'nama_baru' => $namaLengkap,
             'nama_arab_baru' => $namaArab,
             'kelas_baru' => $kelasBaru,
@@ -102,16 +104,16 @@ class SantriImportService
             'errors' => [],
         ];
 
-        // Validasi NIS
-        if (empty($nis)) {
-            $record['errors'][] = 'NIS tidak boleh kosong';
+        // Validasi NISN
+        if (empty($nisn)) {
+            $record['errors'][] = 'NISN tidak boleh kosong';
             return $record;
         }
 
-        // Cari santri berdasarkan NIS
-        $santri = Santri::where('nis', $nis)->first();
+        // Cari santri berdasarkan NISN (PERBAIKAN: sebelumnya pakai NIS)
+        $santri = Santri::where('nisn', $nisn)->first();
         if (!$santri) {
-            $record['errors'][] = "Santri dengan NIS '{$nis}' tidak ditemukan";
+            $record['errors'][] = "Santri dengan NISN '{$nisn}' tidak ditemukan";
             return $record;
         }
 
@@ -229,7 +231,7 @@ class SantriImportService
                 $santri = Santri::find($record['santri_id']);
                 if (!$santri) {
                     $results['failed']++;
-                    $results['messages'][] = "NIS {$record['nis']}: Santri tidak ditemukan lagi (mungkin sudah dihapus)";
+                    $results['messages'][] = "NISN {$record['nisn']}: Santri tidak ditemukan lagi (mungkin sudah dihapus)";
                     continue;
                 }
 
@@ -269,13 +271,13 @@ class SantriImportService
                         $penempatanLama->update(['is_aktif' => false]);
                     }
 
-                    $results['messages'][] = "NIS {$santri->nis}: Asrama akan diubah ke {$record['asrama_baru']}, silakan assign kamar secara manual";
+                    $results['messages'][] = "NISN {$santri->nisn}: Asrama akan diubah ke {$record['asrama_baru']}, silakan assign kamar secara manual";
                 }
 
                 $results['success']++;
             } catch (\Exception $e) {
                 $results['failed']++;
-                $results['messages'][] = "NIS {$record['nis']}: Gagal update - " . $e->getMessage();
+                $results['messages'][] = "NISN {$record['nisn']}: Gagal update - " . $e->getMessage();
             }
         }
 

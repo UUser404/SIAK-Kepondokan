@@ -75,8 +75,12 @@ class SantriController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nis'           => ['required', 'string', 'unique:santri,nis'],
-            'nisn'          => ['nullable', 'string', 'unique:santri,nisn'],
+            // PERBAIKAN: NISN sekarang jadi identitas utama santri (wajib +
+            // unik), NIS jadi opsional. Lihat juga swap yang sama di update(),
+            // dan pencocokan santri di SantriImportService yang sekarang cari
+            // berdasarkan NISN, bukan NIS lagi.
+            'nis'           => ['nullable', 'string', 'unique:santri,nis'],
+            'nisn'          => ['required', 'string', 'unique:santri,nisn'],
             'nama_lengkap'  => ['required', 'string', 'max:100'],
             'nama_arab'     => ['nullable', 'string', 'max:150'],
             'tempat_lahir'  => ['required', 'string', 'max:100'],
@@ -141,8 +145,9 @@ class SantriController extends Controller
     public function update(Request $request, Santri $santri)
     {
         $validated = $request->validate([
-            'nis'           => ['required', 'string', 'unique:santri,nis,' . $santri->id],
-            'nisn'          => ['nullable', 'string', 'unique:santri,nisn,' . $santri->id],
+            // PERBAIKAN: sama seperti store() -- NISN jadi identitas utama.
+            'nis'           => ['nullable', 'string', 'unique:santri,nis,' . $santri->id],
+            'nisn'          => ['required', 'string', 'unique:santri,nisn,' . $santri->id],
             'nama_lengkap'  => ['required', 'string', 'max:100'],
             'nama_arab'     => ['nullable', 'string', 'max:150'],
             'tempat_lahir'  => ['required', 'string', 'max:100'],

@@ -64,7 +64,7 @@
                                   focus:ring-2 outline-none transition"
                             style="--tw-file-bg: var(--siakad-primary);">
                         <p class="text-xs text-siakad-secondary dark:text-gray-400 mt-2">
-                            Kolom wajib: <strong>NIS</strong>. Kolom opsional: Nama Lengkap, Kelas, Asrama —
+                            Kolom wajib: <strong>NISN</strong>. Kolom opsional: Nama Lengkap, Kelas, Asrama —
                             kosongkan kolom yang tidak ingin diubah untuk santri tersebut.
                         </p>
 
@@ -90,7 +90,7 @@
                 </div>
                 <div class="p-5 space-y-3 text-sm text-siakad-secondary dark:text-gray-400">
                     <p>1. Download template di bawah, atau export data santri saat ini sebagai acuan.</p>
-                    <p>2. Isi kolom <strong>NIS</strong> (wajib, dipakai mencocokkan santri) dan kolom yang mau diubah.</p>
+                    <p>2. Isi kolom <strong>NISN</strong> (wajib, dipakai mencocokkan santri) dan kolom yang mau diubah.</p>
                     <p>3. Upload — sistem akan tampilkan preview dulu sebelum benar-benar menyimpan.</p>
                     <p>4. Di halaman preview, kamu bisa pilih baris mana saja yang mau disetujui/dilewati satu per satu.</p>
 

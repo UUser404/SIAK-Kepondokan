@@ -17,7 +17,7 @@
             <h2 class="text-xl font-semibold text-siakad-dark">
                 Edit — {{ $santri->nama_lengkap }}
             </h2>
-            <p class="text-sm text-siakad-secondary mt-0.5">NIS: {{ $santri->nis }}</p>
+            <p class="text-sm text-siakad-secondary mt-0.5">NISN: {{ $santri->nisn }}</p>
         </div>
     </div>
 

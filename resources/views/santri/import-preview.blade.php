@@ -2,6 +2,10 @@
 {{-- resources/views/santri/import-preview.blade.php               --}}
 {{-- Preview hasil parsing Excel sebelum benar-benar disimpan --    --}}
 {{-- setiap baris bisa di-approve/skip/reject satu per satu.        --}}
+{{-- --}}
+{{-- PERBAIKAN: pencocokan santri sekarang pakai NISN (bukan NIS   --}}
+{{-- lagi) -- kolom tabel & key array diganti dari $r['nis'] jadi   --}}
+{{-- $r['nisn']. Lihat SantriImportService untuk logika lengkapnya. --}}
 {{-- ============================================================ --}}
 <x-app-layout>
     <x-slot name="header">Preview Import</x-slot>
@@ -51,7 +55,7 @@
                 <table class="w-full text-sm table-saas">
                     <thead style="background-color: rgba(35,76,106,0.04);">
                         <tr>
-                            @foreach(['Baris','NIS','Nama (Lama → Baru)','Kelas (Lama → Baru)','Asrama (Lama → Baru)','Catatan','Aksi'] as $h)
+                            @foreach(['Baris','NISN','Nama (Lama → Baru)','Kelas (Lama → Baru)','Asrama (Lama → Baru)','Catatan','Aksi'] as $h)
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide
                                    text-siakad-secondary dark:text-gray-400">{{ $h }}</th>
                             @endforeach
@@ -61,7 +65,7 @@
                         @foreach($preview['records'] as $index => $r)
                         <tr class="dark:hover:bg-gray-700/30">
                             <td class="px-4 py-3 text-siakad-secondary dark:text-gray-400">{{ $r['row_number'] }}</td>
-                            <td class="px-4 py-3 text-siakad-dark dark:text-white font-medium">{{ $r['nis'] ?: '-' }}</td>
+                            <td class="px-4 py-3 text-siakad-dark dark:text-white font-medium">{{ $r['nisn'] ?: '-' }}</td>
                             <td class="px-4 py-3 text-siakad-dark dark:text-white">
                                 @if($r['nama_baru'])
                                 <span class="{{ $r['nama_berbeda'] ? 'text-amber-600 dark:text-amber-400 font-medium' : '' }}">

@@ -3,10 +3,13 @@
 // app/Exports/SantriImportTemplateExport.php
 // Template kosong untuk diisi admin sebelum diupload lewat fitur
 // Import Kelas & Asrama Massal. Header di sini SENGAJA pakai teks
-// manusiawi ("NIS", "Nama Lengkap", "Nama Arab", dst) -- saat file ini
+// manusiawi ("NISN", "Nama Lengkap", "Nama Arab", dst) -- saat file ini
 // diupload balik, Maatwebsite\Excel (WithHeadingRow, formatter default)
-// otomatis nge-slug jadi nis/nama_lengkap/nama_arab/kelas/asrama, yang
+// otomatis nge-slug jadi nisn/nama_lengkap/nama_arab/kelas/asrama, yang
 // cocok dengan key yang dibaca SantriImportService::processRow().
+//
+// PERBAIKAN: pencocokan santri sekarang pakai NISN (bukan NIS lagi) --
+// header kolom pertama diganti dari "NIS" jadi "NISN" supaya konsisten.
 // ============================================================
 namespace App\Exports;
 
@@ -27,7 +30,7 @@ class SantriImportTemplateExport implements FromArray, WithHeadings, WithStyles,
 
     public function headings(): array
     {
-        return ['NIS', 'Nama Lengkap', 'Nama Arab', 'Kelas', 'Asrama'];
+        return ['NISN', 'Nama Lengkap', 'Nama Arab', 'Kelas', 'Asrama'];
     }
 
     public function array(): array
@@ -35,9 +38,9 @@ class SantriImportTemplateExport implements FromArray, WithHeadings, WithStyles,
         return [
             // Baris contoh -- hapus/timpa dengan data asli sebelum upload.
             // Kolom Nama Arab, Kelas & Asrama boleh dikosongkan kalau tidak
-            // ada perubahan untuk santri itu (NIS tetap wajib diisi supaya
+            // ada perubahan untuk santri itu (NISN tetap wajib diisi supaya
             // bisa dicocokkan).
-            ['2024001', 'Contoh Nama Santri', 'اسم الطالب المثال', '8B', 'Asrama Al-Fatih'],
+            ['0012345678', 'Contoh Nama Santri', 'اسم الطالب المثال', '8B', 'Asrama Al-Fatih'],
         ];
     }
 
@@ -57,7 +60,7 @@ class SantriImportTemplateExport implements FromArray, WithHeadings, WithStyles,
     public function columnWidths(): array
     {
         return [
-            'A' => 15,  // NIS
+            'A' => 15,  // NISN
             'B' => 30,  // Nama Lengkap
             'C' => 25,  // Nama Arab (baru)
             'D' => 12,  // Kelas
