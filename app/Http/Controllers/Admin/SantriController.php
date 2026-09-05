@@ -53,7 +53,13 @@ class SantriController extends Controller
         $kelasList = Kelas::when($ta, fn($q) => $q->where('tahun_ajaran_id', $ta->id))
             ->orderBy('nama')->get();
 
-        return view('santri.index', compact('santri', 'kelasList'));
+        // Dipakai untuk mencegat tombol "Import Massal" di sisi tombol (popup),
+        // sebelum sempat pindah ke halaman import-bulk sama sekali. Lihat juga
+        // guard yang sama di importBulk() -- ini jaring pengaman kalau ada yang
+        // akses URL import-bulk langsung tanpa lewat tombol ini.
+        $kelasKosong = $kelasList->isEmpty();
+
+        return view('santri.index', compact('santri', 'kelasList', 'kelasKosong'));
     }
 
     public function create()
@@ -205,7 +211,17 @@ class SantriController extends Controller
     }
 
     /**
-     * Tampilkan form untuk bulk import kelas & asrama
+     * Tampilkan form untuk bulk import kelas & asrama.
+     *
+     * PERBAIKAN: sebelumnya method ini tetap merender view walau kelas kosong,
+     * dan view menampilkan link ke route('admin.kelas.create') yang TIDAK
+     * PERNAH TERDAFTAR (KelasController didaftarkan di bawah prefix
+     * 'kurikulum', bukan 'admin') -- menyebabkan RouteNotFoundException (500)
+     * begitu halaman ini dibuka saat kelas kosong. Sekarang cek dilakukan di
+     * sini, SEBELUM view sempat dirender sama sekali, dan redirect balik ke
+     * index dengan flash message. Ini juga jadi jaring pengaman kalau ada yang
+     * akses URL ini langsung tanpa lewat tombol di index (yang sudah dicegat
+     * lebih dulu di sisi client via $kelasKosong).
      */
     public function importBulk()
     {
@@ -216,12 +232,14 @@ class SantriController extends Controller
                 ->with('error', 'Belum ada Tahun Ajaran aktif. Aktifkan Tahun Ajaran dulu sebelum import kelas & asrama.');
         }
 
-        // Kelas untuk TA aktif ini -- kalau kosong, import "Kelas" pasti gagal
-        // semua karena tidak ada yang bisa dicocokkan. Kasih peringatan di awal
-        // supaya admin bikin kelasnya dulu, bukan ketemu error satu-satu di preview.
         $jumlahKelasTaAktif = Kelas::where('tahun_ajaran_id', $ta->id)->count();
 
-        return view('santri.import-bulk', compact('ta', 'jumlahKelasTaAktif'));
+        if ($jumlahKelasTaAktif === 0) {
+            return redirect()->route('admin.santri.index')
+                ->with('error', 'Kelas masih kosong untuk Tahun Ajaran ' . $ta->nama_lengkap . '. Silakan hubungi Kurikulum untuk membuat kelas terlebih dahulu.');
+        }
+
+        return view('santri.import-bulk', compact('ta'));
     }
 
     /**

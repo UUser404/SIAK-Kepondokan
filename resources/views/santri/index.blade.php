@@ -104,7 +104,10 @@
                     </svg>
                     Export Excel
                 </a>
+                {{-- PERBAIKAN: onclick mencegat klik kalau kelas masih kosong --
+                     lihat modal + script di bawah. --}}
                 <a href="{{ route('admin.santri.import-bulk') }}"
+                    onclick="return cekKelasSebelumBulk(event)"
                     class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl
                       border border-gray-200
                       text-siakad-secondary
@@ -272,5 +275,55 @@
         </div>
         @endif
     </div>
+
+    {{-- PERBAIKAN: sebelumnya halaman ini tidak punya tempat menampilkan flash
+         message sama sekali -- redirect ->with('error', ...) dari controller
+         (mis. saat TA belum aktif) tidak pernah tampil ke user. Sekalian
+         ditambal di sini, dipakai juga sebagai jaring pengaman kalau ada yang
+         akses URL import-bulk langsung (lihat SantriController::importBulk()). --}}
+    @if(session('error'))
+    <div id="modal-flash-error" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div class="card-saas max-w-sm w-full mx-4 p-5">
+            <p class="font-semibold text-siakad-dark mb-1.5">Tidak bisa lanjut</p>
+            <p class="text-sm text-siakad-secondary">{{ session('error') }}</p>
+            <button type="button" onclick="document.getElementById('modal-flash-error').remove()"
+                class="mt-4 px-4 py-2 text-sm font-medium rounded-xl text-white"
+                style="background-color: var(--siakad-primary);">
+                Mengerti
+            </button>
+        </div>
+    </div>
+    @endif
+
+    {{-- Modal popup "kelas kosong" -- dicegat di sisi tombol "Import Massal"
+         di atas, sebelum sempat pindah halaman ke import-bulk sama sekali. --}}
+    <div id="modal-kelas-kosong" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
+        <div class="card-saas max-w-sm w-full mx-4 p-5">
+            <p class="font-semibold text-siakad-dark mb-1.5">Kelas masih kosong</p>
+            <p class="text-sm text-siakad-secondary">
+                Belum ada data kelas untuk tahun ajaran aktif. Silakan hubungi Kurikulum
+                untuk membuat kelas terlebih dahulu sebelum import bulk santri.
+            </p>
+            <button type="button"
+                onclick="document.getElementById('modal-kelas-kosong').classList.add('hidden')"
+                class="mt-4 px-4 py-2 text-sm font-medium rounded-xl text-white"
+                style="background-color: var(--siakad-primary);">
+                Mengerti
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function cekKelasSebelumBulk(e) {
+            @if($kelasKosong)
+            e.preventDefault();
+            const modal = document.getElementById('modal-kelas-kosong');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            return false;
+            @endif
+            return true;
+        }
+    </script>
 
 </x-app-layout>

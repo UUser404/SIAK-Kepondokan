@@ -1,6 +1,15 @@
 {{-- ============================================================ --}}
 {{-- resources/views/santri/import-bulk.blade.php                 --}}
 {{-- Form upload untuk fitur Import Kelas & Asrama Massal          --}}
+{{-- --}}
+{{-- PERBAIKAN: blok peringatan "kelas kosong" yang dulu ada di sini --}}
+{{-- (berisi link ke route('admin.kelas.create') yang tidak pernah  --}}
+{{-- terdaftar) sudah DIHAPUS. Cek kelas kosong sekarang dilakukan  --}}
+{{-- lebih awal: di tombol "Import Massal" pada santri/index.blade.php --}}
+{{-- (popup, mencegat sebelum pindah halaman) dan di                --}}
+{{-- SantriController::importBulk() (redirect balik ke index kalau  --}}
+{{-- ada yang tetap sampai ke sini lewat URL langsung). Jadi halaman --}}
+{{-- ini SELALU dirender dalam kondisi kelas sudah pasti ada isinya. --}}
 {{-- ============================================================ --}}
 <x-app-layout>
     <x-slot name="header">Import Kelas & Asrama Massal</x-slot>
@@ -21,25 +30,6 @@
             </p>
         </div>
     </div>
-
-    @if($jumlahKelasTaAktif === 0)
-    <div class="mb-6 px-4 py-3.5 rounded-xl text-sm flex items-start gap-3"
-        style="background:#fef3c7;border:1px solid #fde68a;color:#92400e;">
-        <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-        <div>
-            <p class="font-semibold">Belum ada kelas di Tahun Ajaran {{ $ta->nama_lengkap }}</p>
-            <p class="mt-0.5">
-                Kolom "Kelas" di file import dicocokkan ke kelas yang sudah ada di tahun ajaran aktif ini.
-                Karena belum ada kelas sama sekali, semua baris yang mengisi kolom Kelas akan gagal.
-                <a href="{{ route('admin.kelas.create') }}" class="underline font-medium">Buat kelas dulu di sini</a>
-                sebelum lanjut import.
-            </p>
-        </div>
-    </div>
-    @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2">

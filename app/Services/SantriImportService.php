@@ -142,6 +142,11 @@ class SantriImportService
                 $record['errors'][] = "Kelas '{$kelasBaru}' tidak ditemukan di tahun ajaran " .
                     ($this->tahunAjaran?->nama_lengkap ?? 'aktif') .
                     " -- pastikan kelas ini sudah dibuat dulu di menu Kelas";
+                // FIX: sebelumnya kelas_valid tetap `true` (default) di cabang ini --
+                // datanya jadi tidak konsisten dengan pesan error di atas. Ketolong
+                // aman secara tampilan karena summary() cek `errors` duluan, tapi
+                // flag ini sendiri harus mencerminkan kondisi sebenarnya.
+                $record['kelas_valid'] = false;
             } else {
                 $record['kelas_id'] = $kelas->id;
                 $kelasAktif = $santri->kelasAktif;
@@ -158,6 +163,9 @@ class SantriImportService
 
             if (!$asrama) {
                 $record['errors'][] = "Asrama '{$asramaBaru}' tidak ditemukan atau tidak aktif";
+                // FIX: sama seperti blok kelas di atas -- pola bug yang identik,
+                // asrama_valid tidak pernah di-set false saat asrama tidak ketemu.
+                $record['asrama_valid'] = false;
             } else {
                 $record['asrama_id'] = $asrama->id;
                 $penempatanAktif = $santri->penempatanKamar
