@@ -50,6 +50,26 @@
     <form method="POST" action="{{ route('admin.santri.import-bulk.store') }}">
         @csrf
 
+        {{-- PERBAIKAN: tombol aksi massal -- klik sekali langsung set semua
+             dropdown "Aksi" di tiap baris tanpa perlu pilih satu-satu. Aman
+             dipakai walau ada baris error (santri_id null) -- backend di
+             SantriImportService::save() tetap skip baris begitu kalau
+             santri_id kosong, apapun nilai action-nya. --}}
+        <div class="flex items-center gap-3 mb-3">
+            <button type="button" onclick="setSemuaAksi('approve')"
+                class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700
+                       text-siakad-dark dark:text-white
+                       hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                Setujui Semua
+            </button>
+            <button type="button" onclick="setSemuaAksi('skip')"
+                class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700
+                       text-siakad-secondary dark:text-gray-400
+                       hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                Lewati Semua
+            </button>
+        </div>
+
         <div class="card-saas dark:bg-gray-800 overflow-hidden mb-5">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm table-saas">
@@ -132,4 +152,12 @@
             </a>
         </div>
     </form>
+
+    <script>
+        function setSemuaAksi(aksi) {
+            document.querySelectorAll('select[name^="action_"]').forEach(function(select) {
+                select.value = aksi;
+            });
+        }
+    </script>
 </x-app-layout>
